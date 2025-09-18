@@ -691,23 +691,27 @@ class YGOSimulator:
                                 snapped = True
                                 break
 
-                        # When snapping to graveyard or banish
-                        if not snapped:
-                            for idx, gy in enumerate(self.graveyard_zones):
-                                if gy.collidepoint(event.pos):
-                                    card["location"] = "graveyard"
-                                    card["rect"].topleft = self.graveyard_zones[0 if card["owner"]=="player" else 1].topleft
-                                    snapped = True
-                                    break
+                        # When snapping to graveyard
+                        for gy in self.graveyard_zones:
+                            if gy.collidepoint(event.pos):
+                                card["location"] = "graveyard"
+                                card["rect"].topleft = gy.topleft
+                                card["surface"] = card["surface_orig"]  # reset rotation
+                                snapped = True
+                                break
 
-                        if not snapped:
-                            for idx, bz in enumerate(self.banish_zones):
-                                if bz.collidepoint(event.pos):
-                                    card["location"] = "banished"
-                                    card["surface"] = pygame.transform.rotate(card["surface_orig"], 90)
-                                    card["rect"].topleft = self.banish_zones[0 if card["owner"]=="player" else 1].topleft
-                                    snapped = True
-                                    break
+                        # When snapping to banish
+                        for bz in self.banish_zones:
+                            if bz.collidepoint(event.pos):
+                                card["location"] = "banished"
+                                card["rect"].topleft = bz.topleft
+                                card["surface"] = pygame.transform.rotate(card["surface_orig"], 90)
+                                snapped = True
+                                break
+
+                        # If moving to a normal zone (hand/field), reset rotation
+                        if snapped and card["location"] != "banished":
+                            card["surface"] = card["surface_orig"]
 
                         # Mark as placed manually
                         card["placed"] = True
