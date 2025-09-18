@@ -152,20 +152,23 @@ class YGOSimulator:
         pygame.init()
         self.screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
         pygame.display.set_caption("Yu-Gi-Oh! Simulator")
-
         self.screen_width, self.screen_height = self.screen.get_size()
 
-        self.player_cards = player_cards
-        self.opponent_cards = opponent_cards
+        # Cards stored as dicts: name, owner ('player'/'opponent'), location ('hand','field','graveyard','banished')
+        self.cards = []
+        for card in player_cards:
+            self.cards.append({"name": card, "owner": "player", "location": "hand"})
+        for card in opponent_cards:
+            self.cards.append({"name": card, "owner": "opponent", "location": "hand"})
 
-        self.card_surfaces = []      
-        self.card_rects = []         
+        self.card_surfaces = []
+        self.card_rects = []
         self.card_preview_surfaces = []
 
         # Console settings
         self.console_font = pygame.font.SysFont(None, 18)
         self.console_text = ""
-        self.console_history = []  # store valid commands
+        self.console_history = []
         console_width, console_height = 150, 100
         self.console_rect = pygame.Rect(
             380,
@@ -181,6 +184,16 @@ class YGOSimulator:
         # Create zones
         self.zones = self.create_zones()
 
+        # Graveyard & banish zones (hardcoded example positions)
+        self.graveyard_zones = [
+            pygame.Rect(150, self.screen_height//2 - CARD_HEIGHT//2, CARD_WIDTH, CARD_HEIGHT),  # Player
+            pygame.Rect(self.screen_width-300, self.screen_height//2 - CARD_HEIGHT//2, CARD_WIDTH, CARD_HEIGHT)  # Opponent
+        ]
+        self.banish_zones = [
+            pygame.Rect(150, self.screen_height//2 + CARD_HEIGHT + 20, CARD_WIDTH, CARD_HEIGHT),  # Player
+            pygame.Rect(self.screen_width-300, self.screen_height//2 + CARD_HEIGHT + 20, CARD_WIDTH, CARD_HEIGHT)  # Opponent
+        ]
+
         # Drag state
         self.dragged_card_index = None
         self.dragged_card_pos = (0,0)
@@ -194,7 +207,6 @@ class YGOSimulator:
     # -----------------------------
     def create_zones(self):
         zones = []
-
         padding_x = 773
         padding_y = 109
         gap_x = 35
@@ -221,60 +233,74 @@ class YGOSimulator:
     # -----------------------------
     # Fetch card image
     # -----------------------------
-    def fetch_card_surface(self, card_id, width, height):
+    def fetch_card_surface(self, card_name, width, height):
+        card_id = YGOProDeck_Card_Info[card_name]["id"]
         url = f"https://images.ygoprodeck.com/images/cards/{card_id}.jpg"
         resp = requests.get(url)
         img = Image.open(BytesIO(resp.content))
         img = img.resize((width, height), Image.LANCZOS)
-        mode = img.mode
-        size = img.size
-        data = img.tobytes()
-        return pygame.image.fromstring(data, size, mode)
+        return pygame.image.fromstring(img.tobytes(), img.size, img.mode)
 
     # -----------------------------
-    # Load cards for player and opponent
+    # Load cards onto screen surfaces
     # -----------------------------
     def load_cards(self):
         self.card_surfaces.clear()
         self.card_rects.clear()
         self.card_preview_surfaces.clear()
 
-        # Opponent cards (top left)
-        x, y = 0, 0
-        for card in self.opponent_cards:
-            card_id = YGOProDeck_Card_Info[card]["id"]
-            surface = self.fetch_card_surface(card_id, CARD_WIDTH, CARD_HEIGHT)
-            preview_surface = self.fetch_card_surface(card_id, PREVIEW_WIDTH, PREVIEW_HEIGHT)
-            rect = surface.get_rect(topleft=(x, y))
-            self.card_surfaces.append(surface)
-            self.card_preview_surfaces.append(preview_surface)
-            self.card_rects.append(rect)
-            x += CARD_WIDTH + SPACING
+        # Track positions for hand and field
+        player_x, player_y = 0, self.screen_height - CARD_HEIGHT
+        opponent_x, opponent_y = 0, 0
+        field_positions = self.zones
 
-        # Player cards (bottom left)
-        x, y = 0, self.screen_height - CARD_HEIGHT
-        for card in self.player_cards:
-            card_id = YGOProDeck_Card_Info[card]["id"]
-            surface = self.fetch_card_surface(card_id, CARD_WIDTH, CARD_HEIGHT)
-            preview_surface = self.fetch_card_surface(card_id, PREVIEW_WIDTH, PREVIEW_HEIGHT)
-            rect = surface.get_rect(topleft=(x, y))
+        for card in self.cards:
+            surface = self.fetch_card_surface(card["name"], CARD_WIDTH, CARD_HEIGHT)
+            preview = self.fetch_card_surface(card["name"], PREVIEW_WIDTH, PREVIEW_HEIGHT)
+
+            if card["location"] == "hand":
+                if card["owner"] == "player":
+                    rect = surface.get_rect(topleft=(player_x, player_y))
+                    player_x += CARD_WIDTH + SPACING
+                else:
+                    rect = surface.get_rect(topleft=(opponent_x, opponent_y))
+                    opponent_x += CARD_WIDTH + SPACING
+            elif card["location"] == "field":
+                # Assign first available zone
+                for zone in field_positions:
+                    if not any(r.colliderect(zone) for r in self.card_rects):
+                        rect = surface.get_rect(topleft=(zone.x, zone.y))
+                        break
+            elif card["location"] == "graveyard":
+                if card["owner"] == "player":
+                    rect = surface.get_rect(topleft=(self.graveyard_zones[0].x, self.graveyard_zones[0].y))
+                else:
+                    rect = surface.get_rect(topleft=(self.graveyard_zones[1].x, self.graveyard_zones[1].y))
+            elif card["location"] == "banished":
+                if card["owner"] == "player":
+                    rect = surface.get_rect(topleft=(self.banish_zones[0].x, self.banish_zones[0].y))
+                else:
+                    rect = surface.get_rect(topleft=(self.banish_zones[1].x, self.banish_zones[1].y))
+
             self.card_surfaces.append(surface)
-            self.card_preview_surfaces.append(preview_surface)
+            self.card_preview_surfaces.append(preview)
             self.card_rects.append(rect)
-            x += CARD_WIDTH + SPACING
 
     # -----------------------------
-    # Draw field, zones, cards, preview, console
+    # Draw everything
     # -----------------------------
     def draw_field(self, hover_index=None):
-        # Draw mat
         self.screen.blit(self.mat_surface, (0,0))
 
         # Draw zones
         for zone in self.zones:
             pygame.draw.rect(self.screen, (100,100,100), zone, 2)
+        for gy in self.graveyard_zones:
+            pygame.draw.rect(self.screen, (150,0,0), gy, 2)
+        for bz in self.banish_zones:
+            pygame.draw.rect(self.screen, (0,0,150), bz, 2)
 
-        # Highlight hovered zone while dragging
+        # Highlight dragged
         if self.dragged_card_index is not None:
             for zone in self.zones:
                 if zone.collidepoint(pygame.mouse.get_pos()):
@@ -284,55 +310,59 @@ class YGOSimulator:
         for i, surface in enumerate(self.card_surfaces):
             if i != self.dragged_card_index:
                 self.screen.blit(surface, self.card_rects[i].topleft)
-
-        # Draw dragged card on top
         if self.dragged_card_index is not None:
             self.screen.blit(self.card_surfaces[self.dragged_card_index], self.dragged_card_pos)
 
-        # Draw preview
+        # Preview
         if hover_index is not None:
             preview_surface = self.card_preview_surfaces[hover_index]
             preview_x = 0
-            preview_y = (self.screen.get_height() - PREVIEW_HEIGHT)//2
+            preview_y = (self.screen_height - PREVIEW_HEIGHT)//2
             self.screen.blit(preview_surface, (preview_x, preview_y))
 
-        # Draw console
+        # Console
         pygame.draw.rect(self.screen, (50,50,50), self.console_rect)
         pygame.draw.rect(self.screen, (200,200,200), self.console_rect, 2)
         line_height = self.console_font.get_height() + 2
         max_history = self.console_rect.height // line_height - 1
-        txt_width, _ = self.console_font.size(self.console_text)
-        max_width = self.console_rect.width - 10
         display_text = self.console_text
+        max_width = self.console_rect.width - 10
         while self.console_font.size(display_text)[0] > max_width and len(display_text) > 0:
-            display_text = display_text[1:]  # remove first character
+            display_text = display_text[1:]
         for i, cmd in enumerate(self.console_history[-max_history:]):
             txt_surf = self.console_font.render(cmd, True, (0,255,0))
             self.screen.blit(txt_surf, (self.console_rect.x+5, self.console_rect.y + i*line_height))
-        # Draw current input line at bottom
         txt_surf = self.console_font.render(display_text, True, (255,255,255))
-        input_y = self.console_rect.y + self.console_rect.height - line_height
-        self.screen.blit(txt_surf, (self.console_rect.x+5, input_y))
-
+        self.screen.blit(txt_surf, (self.console_rect.x+5, self.console_rect.y + self.console_rect.height - line_height))
         pygame.display.flip()
+
+    # -----------------------------
+    # Open Tkinter selection for moving cards
+    # -----------------------------
+    def select_cards_from_game_state(self, callback):
+        # Only allow selecting cards in hand or on field
+        available = [c["name"] for c in self.cards if c["location"] in ("hand","field")]
+        if not available:
+            return
+        def apply_selection(selected):
+            callback(selected)
+        root = tk.Tk()
+        root.withdraw()
+        draw_window = DrawCardWindow(root, apply_selection)
+        draw_window.listbox.delete(0, tk.END)
+        for name in available:
+            draw_window.listbox.insert(tk.END, name)
+        root.wait_window(draw_window)
+        root.destroy()
 
     # -----------------------------
     # Open Tkinter draw window
     # -----------------------------
     def open_draw_window(self, side):
         def add_cards(selected):
-            if side == "player":
-                if len(self.player_cards) + len(selected) > MAX_HAND:
-                    print("Hand size over 12 not currently supported!")
-                    return
-                self.player_cards.extend(selected)
-            else:
-                if len(self.opponent_cards) + len(selected) > MAX_HAND:
-                    print("Hand size over 12 not currently supported!")
-                    return
-                self.opponent_cards.extend(selected)
+            for name in selected:
+                self.cards.append({"name": name, "owner": side, "location": "hand"})
             self.load_cards()
-
         root = tk.Tk()
         root.withdraw()
         draw_window = DrawCardWindow(root, add_cards)
@@ -340,20 +370,18 @@ class YGOSimulator:
         root.destroy()
 
     # -----------------------------
-    # Main Pygame loop
+    # Main loop
     # -----------------------------
     def run(self):
         running = True
         clock = pygame.time.Clock()
-
         while running:
-            mouse_pos = pygame.mouse.get_pos()
             hover_index = None
+            mouse_pos = pygame.mouse.get_pos()
             for i, rect in enumerate(self.card_rects):
                 if rect.collidepoint(mouse_pos):
                     hover_index = i
                     break
-
             self.draw_field(hover_index)
 
             for event in pygame.event.get():
@@ -366,12 +394,15 @@ class YGOSimulator:
                         self.console_text = self.console_text[:-1]
                     elif event.key == pygame.K_RETURN:
                         cmd = self.console_text.strip().lower()
+                        self.console_history.append(cmd)
                         if cmd == "drawplay":
-                            self.console_history.append(cmd)
                             self.open_draw_window("player")
                         elif cmd == "drawopp":
-                            self.console_history.append(cmd)
                             self.open_draw_window("opponent")
+                        elif cmd == "graveyard":
+                            self.select_cards_from_game_state(lambda selected: self.move_cards(selected,"graveyard"))
+                        elif cmd == "banish":
+                            self.select_cards_from_game_state(lambda selected: self.move_cards(selected,"banished"))
                         else:
                             print(f"Unknown command: {cmd}")
                         self.console_text = ""
@@ -387,8 +418,10 @@ class YGOSimulator:
 
                 elif event.type == pygame.MOUSEBUTTONUP:
                     if self.dragged_card_index is not None:
+                        # Snap to nearest zone if on field
                         for zone in self.zones:
                             if zone.collidepoint(event.pos):
+                                self.cards[self.dragged_card_index]["location"] = "field"
                                 self.card_rects[self.dragged_card_index].topleft = (zone.x, zone.y)
                                 break
                         self.dragged_card_index = None
@@ -398,8 +431,16 @@ class YGOSimulator:
                         self.dragged_card_pos = (event.pos[0]-self.drag_offset[0], event.pos[1]-self.drag_offset[1])
 
             clock.tick(30)
-
         pygame.quit()
+
+    # -----------------------------
+    # Move selected cards to a new location
+    # -----------------------------
+    def move_cards(self, card_names, new_location):
+        for card in self.cards:
+            if card["name"] in card_names:
+                card["location"] = new_location
+        self.load_cards()
 
 # -----------------------------
 # Main
