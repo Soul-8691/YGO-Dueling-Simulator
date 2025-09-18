@@ -258,6 +258,10 @@ class YGOSimulator:
             surface = self.fetch_card_surface(card["name"], CARD_WIDTH, CARD_HEIGHT)
             preview = self.fetch_card_surface(card["name"], PREVIEW_WIDTH, PREVIEW_HEIGHT)
 
+            # Rotate banished cards 90 degrees
+            if card["location"] == "banished":
+                surface = pygame.transform.rotate(surface, 90)
+
             if card["location"] == "hand":
                 if card["owner"] == "player":
                     rect = surface.get_rect(topleft=(player_x, player_y))
@@ -273,14 +277,14 @@ class YGOSimulator:
                         break
             elif card["location"] == "graveyard":
                 if card["owner"] == "player":
-                    rect = surface.get_rect(topleft=(self.graveyard_zones[0].x, self.graveyard_zones[0].y))
-                else:
                     rect = surface.get_rect(topleft=(self.graveyard_zones[1].x, self.graveyard_zones[1].y))
+                else:
+                    rect = surface.get_rect(topleft=(self.graveyard_zones[0].x, self.graveyard_zones[0].y))
             elif card["location"] == "banished":
                 if card["owner"] == "player":
-                    rect = surface.get_rect(topleft=(self.banish_zones[0].x, self.banish_zones[0].y))
-                else:
                     rect = surface.get_rect(topleft=(self.banish_zones[1].x, self.banish_zones[1].y))
+                else:
+                    rect = surface.get_rect(topleft=(self.banish_zones[0].x, self.banish_zones[0].y))
 
             self.card_surfaces.append(surface)
             self.card_preview_surfaces.append(preview)
@@ -440,6 +444,11 @@ class YGOSimulator:
         for card in self.cards:
             if card["name"] in card_names:
                 card["location"] = new_location
+                # Force re-rotation if banished
+                if new_location == "banished":
+                    idx = self.cards.index(card)
+                    self.card_surfaces[idx] = pygame.transform.rotate(self.card_surfaces[idx], 90)
+
         self.load_cards()
 
 # -----------------------------
