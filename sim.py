@@ -17,7 +17,7 @@ YGOProDeck_Card_Info = {c['name']: c for c in data['data']}
 CARD_WIDTH, CARD_HEIGHT = 68, 98
 SPACING = 10
 PREVIEW_WIDTH, PREVIEW_HEIGHT = 375, 546
-MAX_HAND = 12
+MAX_HAND = 17
 
 # -----------------------------
 # Tkinter Card Selection Window
