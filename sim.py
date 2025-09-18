@@ -430,8 +430,8 @@ class YGOSimulator:
         field_positions = self.zones
 
         for card in self.cards:
-            # Skip cards already snapped to zones or dropped manually
-            if card.get("rect") is not None and card.get("placed", False):
+            # Always recalc rect if card is in graveyard or banished
+            if card.get("rect") is not None and card.get("placed", False) and card["location"] in ("hand", "field"):
                 self.card_surfaces.append(card["surface"])
                 self.card_preview_surfaces.append(card["preview"])
                 self.card_rects.append(card["rect"])
@@ -448,6 +448,7 @@ class YGOSimulator:
                     rect = surface.get_rect(topleft=(opponent_x, opponent_y))
                     opponent_x += CARD_WIDTH + SPACING
             elif card["location"] == "field":
+                # Snap to first free field zone
                 for zone in field_positions:
                     if not any(c["rect"].colliderect(zone) for c in self.cards if c["location"]=="field"):
                         rect = surface.get_rect(topleft=(zone.x, zone.y))
@@ -464,12 +465,15 @@ class YGOSimulator:
                     if card["owner"]=="player" else
                     (self.banish_zones[1].x, self.banish_zones[1].y)
                 )
-                surface = pygame.transform.rotate(surface, 90)
+                # Do NOT rotate here; rotation already handled on move
 
             card["rect"] = rect
             card["surface"] = surface
             card["preview"] = preview
-            card["placed"] = True  # mark as positioned
+
+            # Mark as placed only for hand/field cards
+            if card["location"] in ("hand", "field"):
+                card["placed"] = True
 
             self.card_surfaces.append(surface)
             self.card_preview_surfaces.append(preview)
@@ -597,11 +601,14 @@ class YGOSimulator:
         for c in self.cards:
             if c["uid"] in uid_set:
                 c["location"] = new_location
-                # rotate surface immediately if banished
+
+                # Rotate if moving to banished
                 if new_location == "banished":
                     c["surface"] = pygame.transform.rotate(c["surface_orig"], 90)
                 else:
+                    # Reset to normal for other locations
                     c["surface"] = c["surface_orig"]
+
         self.load_cards()
 
     # -----------------------------
@@ -684,7 +691,7 @@ class YGOSimulator:
                                 snapped = True
                                 break
 
-                        # Snap to graveyard
+                        # When snapping to graveyard or banish
                         if not snapped:
                             for idx, gy in enumerate(self.graveyard_zones):
                                 if gy.collidepoint(event.pos):
@@ -693,13 +700,12 @@ class YGOSimulator:
                                     snapped = True
                                     break
 
-                        # Snap to banish
                         if not snapped:
                             for idx, bz in enumerate(self.banish_zones):
                                 if bz.collidepoint(event.pos):
                                     card["location"] = "banished"
-                                    card["rect"].topleft = self.banish_zones[0 if card["owner"]=="player" else 1].topleft
                                     card["surface"] = pygame.transform.rotate(card["surface_orig"], 90)
+                                    card["rect"].topleft = self.banish_zones[0 if card["owner"]=="player" else 1].topleft
                                     snapped = True
                                     break
 
