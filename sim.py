@@ -26,24 +26,68 @@ class CardSelectionWindow(tk.Toplevel):
     def __init__(self, master, callback):
         super().__init__(master)
         self.title("Select Cards")
-
         self.callback = callback
 
         all_cards = sorted(YGOProDeck_Card_Info.keys())
+        self.all_cards = all_cards  # keep full list for filtering
 
-        tk.Label(self, text="Select Player Cards (1–5)").pack()
-        self.player_listbox = tk.Listbox(self, selectmode=tk.MULTIPLE, exportselection=False, width=40, height=20)
-        self.player_listbox.pack(side=tk.LEFT, padx=10)
+        # Player frame
+        player_frame = tk.Frame(self)
+        player_frame.pack(side=tk.LEFT, padx=10, pady=10)
+        tk.Label(player_frame, text="Select Player Cards (1–5)").pack()
+        self.player_search_var = tk.StringVar()
+        self.player_search_var.trace_add("write", self.update_player_list)
+        tk.Entry(player_frame, textvariable=self.player_search_var).pack(pady=2)
+        self.player_listbox = tk.Listbox(player_frame, selectmode=tk.MULTIPLE, exportselection=False, width=40, height=20)
+        self.player_listbox.pack()
+
+        # --- Player selection ---
         for name in all_cards:
             self.player_listbox.insert(tk.END, name)
 
-        tk.Label(self, text="Select Opponent Cards (1–5)").pack()
-        self.opponent_listbox = tk.Listbox(self, selectmode=tk.MULTIPLE, exportselection=False, width=40, height=20)
-        self.opponent_listbox.pack(side=tk.RIGHT, padx=10)
+        # Opponent frame
+        opponent_frame = tk.Frame(self)
+        opponent_frame.pack(side=tk.LEFT, padx=10, pady=10)
+        tk.Label(opponent_frame, text="Select Opponent Cards (1–5)").pack()
+        self.opponent_search_var = tk.StringVar()
+        self.opponent_search_var.trace_add("write", self.update_opponent_list)
+        tk.Entry(opponent_frame, textvariable=self.opponent_search_var).pack(pady=2)
+        self.opponent_listbox = tk.Listbox(opponent_frame, selectmode=tk.MULTIPLE, exportselection=False, width=40, height=20)
+        self.opponent_listbox.pack()
+
+        # --- Opponent selection ---
         for name in all_cards:
             self.opponent_listbox.insert(tk.END, name)
 
         tk.Button(self, text="Confirm", command=self.confirm_selection).pack(pady=10)
+
+    def update_player_list(self, *args):
+        search = self.player_search_var.get().lower()
+        self.player_listbox.delete(0, tk.END)
+        for name in self.all_cards:
+            if search in name.lower():
+                self.player_listbox.insert(tk.END, name)
+
+    def update_opponent_list(self, *args):
+        search = self.opponent_search_var.get().lower()
+        self.opponent_listbox.delete(0, tk.END)
+        for name in self.all_cards:
+            if search in name.lower():
+                self.opponent_listbox.insert(tk.END, name)
+
+    def confirm_selection(self):
+        player_cards = [self.player_listbox.get(i) for i in self.player_listbox.curselection()]
+        opponent_cards = [self.opponent_listbox.get(i) for i in self.opponent_listbox.curselection()]
+
+        if not (1 <= len(player_cards) <= 5):
+            messagebox.showerror("Error", "Select between 1 and 5 Player cards")
+            return
+        if not (1 <= len(opponent_cards) <= 5):
+            messagebox.showerror("Error", "Select between 1 and 5 Opponent cards")
+            return
+
+        self.destroy()
+        self.callback(player_cards, opponent_cards)
 
     def confirm_selection(self):
         player_cards = [self.player_listbox.get(i) for i in self.player_listbox.curselection()]
@@ -68,14 +112,30 @@ class DrawCardWindow(tk.Toplevel):
         self.title("Draw Cards")
         self.callback = callback
 
-        all_cards = sorted(YGOProDeck_Card_Info.keys())
-        self.listbox = tk.Listbox(self, selectmode=tk.MULTIPLE, width=40, height=20)
-        self.listbox.pack(padx=10, pady=10)
+        self.all_cards = sorted(YGOProDeck_Card_Info.keys())
 
-        for name in all_cards:
+        # --- Search entry ---
+        self.search_var = tk.StringVar()
+        self.search_var.trace_add("write", self.update_list)
+        search_entry = tk.Entry(self, textvariable=self.search_var)
+        search_entry.pack(padx=10, pady=5)
+
+        # --- Listbox ---
+        self.listbox = tk.Listbox(self, selectmode=tk.MULTIPLE, width=40, height=20)
+        self.listbox.pack(padx=10, pady=5)
+
+        for name in self.all_cards:
             self.listbox.insert(tk.END, name)
 
+        # --- Confirm button ---
         tk.Button(self, text="Confirm", command=self.confirm).pack(pady=5)
+
+    def update_list(self, *args):
+        search = self.search_var.get().lower()
+        self.listbox.delete(0, tk.END)
+        for name in self.all_cards:
+            if search in name.lower():
+                self.listbox.insert(tk.END, name)
 
     def confirm(self):
         selected = [self.listbox.get(i) for i in self.listbox.curselection()]
@@ -104,8 +164,12 @@ class YGOSimulator:
         self.console_font = pygame.font.SysFont(None, 24)
         self.console_text = ""
         self.console_history = []  # store valid commands
+        console_width, console_height = 150, 150
         self.console_rect = pygame.Rect(
-            self.screen_width-260, self.screen_height-160, 250, 150
+            (self.screen_width - console_width)//2,
+            (self.screen_height - console_height)//2,
+            console_width,
+            console_height
         )
 
         # Load mat background
