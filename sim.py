@@ -301,10 +301,16 @@ class YGOSimulator:
         pygame.draw.rect(self.screen, (200,200,200), self.console_rect, 2)
         line_height = self.console_font.get_height() + 2
         max_history = self.console_rect.height // line_height - 1
+        txt_width, _ = self.console_font.size(self.console_text)
+        max_width = self.console_rect.width - 10
+        display_text = self.console_text
+        while self.console_font.size(display_text)[0] > max_width and len(display_text) > 0:
+            display_text = display_text[1:]  # remove first character
         for i, cmd in enumerate(self.console_history[-max_history:]):
             txt_surf = self.console_font.render(cmd, True, (0,255,0))
             self.screen.blit(txt_surf, (self.console_rect.x+5, self.console_rect.y + i*line_height))
-        txt_surf = self.console_font.render(self.console_text, True, (255,255,255))
+        # Draw current input line at bottom
+        txt_surf = self.console_font.render(display_text, True, (255,255,255))
         input_y = self.console_rect.y + self.console_rect.height - line_height
         self.screen.blit(txt_surf, (self.console_rect.x+5, input_y))
 
