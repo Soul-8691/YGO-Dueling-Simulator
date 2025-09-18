@@ -401,7 +401,7 @@ class YGOSimulator:
                             self.open_draw_window("opponent")
                         elif cmd == "gy":
                             self.select_cards_from_game_state(lambda selected: self.move_cards(selected,"graveyard"))
-                        elif cmd == "banish":
+                        elif cmd == "bz":
                             self.select_cards_from_game_state(lambda selected: self.move_cards(selected,"banished"))
                         else:
                             print(f"Unknown command: {cmd}")
