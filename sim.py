@@ -1,23 +1,23 @@
+import pygame
 import tkinter as tk
 from tkinter import messagebox
-import requests
 from PIL import Image
 from io import BytesIO
-import pygame
+import requests
 import json
 
 # -----------------------------
-# Load Card Data
+# Load card data
 # -----------------------------
 with open('YGOProDeck_Card_Info.json', 'r', encoding='utf-8') as f:
     data = json.load(f)
 
-YGOProDeck_Card_Info = {}
-for cdata in data['data']:
-    YGOProDeck_Card_Info[cdata['name']] = cdata
+YGOProDeck_Card_Info = {c['name']: c for c in data['data']}
 
 CARD_WIDTH, CARD_HEIGHT = 80, 116
 SPACING = 10
+PREVIEW_WIDTH, PREVIEW_HEIGHT = 350, 510
+MAX_HAND = 12
 
 # -----------------------------
 # Tkinter Card Selection Window
@@ -60,21 +60,51 @@ class CardSelectionWindow(tk.Toplevel):
         self.callback(player_cards, opponent_cards)
 
 # -----------------------------
+# Tkinter Card Selection Window
+# -----------------------------
+class DrawCardWindow(tk.Toplevel):
+    def __init__(self, master, callback):
+        super().__init__(master)
+        self.title("Draw Cards")
+        self.callback = callback
+
+        all_cards = sorted(YGOProDeck_Card_Info.keys())
+        self.listbox = tk.Listbox(self, selectmode=tk.MULTIPLE, width=40, height=20)
+        self.listbox.pack(padx=10, pady=10)
+
+        for name in all_cards:
+            self.listbox.insert(tk.END, name)
+
+        tk.Button(self, text="Confirm", command=self.confirm).pack(pady=5)
+
+    def confirm(self):
+        selected = [self.listbox.get(i) for i in self.listbox.curselection()]
+        self.destroy()
+        self.callback(selected)
+
+# -----------------------------
 # Pygame Simulator
 # -----------------------------
 class YGOSimulator:
-    PREVIEW_WIDTH, PREVIEW_HEIGHT = 400, 583
-
     def __init__(self, player_cards, opponent_cards):
         pygame.init()
         self.screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
-        pygame.display.set_caption("Yu-Gi-Oh! Manual Simulator")
+        pygame.display.set_caption("Yu-Gi-Oh! Simulator")
 
         self.player_cards = player_cards
         self.opponent_cards = opponent_cards
-        self.card_surfaces = []      # small card surfaces
-        self.card_rects = []         # small card rects for hover detection
-        self.card_preview_surfaces = []  # large preview surfaces
+
+        self.card_surfaces = []      
+        self.card_rects = []         
+        self.card_preview_surfaces = []
+
+        # Console settings
+        self.console_font = pygame.font.SysFont(None, 24)
+        self.console_text = ""
+        self.console_history = []  # store valid commands
+        self.console_rect = pygame.Rect(
+            self.screen.get_width()-260, self.screen.get_height()-160, 250, 150
+        )
 
         self.load_cards()
         self.run()
@@ -90,12 +120,16 @@ class YGOSimulator:
         return pygame.image.fromstring(data, size, mode)
 
     def load_cards(self):
+        self.card_surfaces.clear()
+        self.card_rects.clear()
+        self.card_preview_surfaces.clear()
+
         # Opponent cards (top left)
         x, y = 10, 10
         for card in self.opponent_cards:
             card_id = YGOProDeck_Card_Info[card]["id"]
             surface = self.fetch_card_surface(card_id, CARD_WIDTH, CARD_HEIGHT)
-            preview_surface = self.fetch_card_surface(card_id, self.PREVIEW_WIDTH, self.PREVIEW_HEIGHT)
+            preview_surface = self.fetch_card_surface(card_id, PREVIEW_WIDTH, PREVIEW_HEIGHT)
             rect = surface.get_rect(topleft=(x, y))
             self.card_surfaces.append(surface)
             self.card_preview_surfaces.append(preview_surface)
@@ -103,12 +137,11 @@ class YGOSimulator:
             x += CARD_WIDTH + SPACING
 
         # Player cards (bottom left)
-        screen_height = self.screen.get_height()
-        x, y = 10, screen_height - CARD_HEIGHT - 10
+        x, y = 10, self.screen.get_height() - CARD_HEIGHT - 10
         for card in self.player_cards:
             card_id = YGOProDeck_Card_Info[card]["id"]
             surface = self.fetch_card_surface(card_id, CARD_WIDTH, CARD_HEIGHT)
-            preview_surface = self.fetch_card_surface(card_id, self.PREVIEW_WIDTH, self.PREVIEW_HEIGHT)
+            preview_surface = self.fetch_card_surface(card_id, PREVIEW_WIDTH, PREVIEW_HEIGHT)
             rect = surface.get_rect(topleft=(x, y))
             self.card_surfaces.append(surface)
             self.card_preview_surfaces.append(preview_surface)
@@ -116,20 +149,58 @@ class YGOSimulator:
             x += CARD_WIDTH + SPACING
 
     def draw_field(self, hover_index=None):
-        self.screen.fill((0, 128, 0))  # green background
+        self.screen.fill((0, 128, 0))  # green field
 
-        # Draw all cards
+        # Draw cards
         for surface, rect in zip(self.card_surfaces, self.card_rects):
             self.screen.blit(surface, rect.topleft)
 
-        # Draw preview if hovering
+        # Draw preview
         if hover_index is not None:
             preview_surface = self.card_preview_surfaces[hover_index]
-            preview_x = 10  # leftmost
-            preview_y = (self.screen.get_height() - self.PREVIEW_HEIGHT) // 2
+            preview_x = 10
+            preview_y = (self.screen.get_height() - PREVIEW_HEIGHT)//2
             self.screen.blit(preview_surface, (preview_x, preview_y))
 
+        # Draw console background
+        pygame.draw.rect(self.screen, (50,50,50), self.console_rect)
+        pygame.draw.rect(self.screen, (200,200,200), self.console_rect, 2)
+
+        # Draw history lines
+        line_height = self.console_font.get_height() + 2
+        max_history = self.console_rect.height // line_height - 1  # reserve last line for input
+        for i, cmd in enumerate(self.console_history[-max_history:]):
+            txt_surf = self.console_font.render(cmd, True, (0,255,0))
+            self.screen.blit(txt_surf, (self.console_rect.x+5, self.console_rect.y + i*line_height))
+
+        # Draw current input line at bottom
+        txt_surf = self.console_font.render(self.console_text, True, (255,255,255))
+        input_y = self.console_rect.y + self.console_rect.height - line_height
+        self.screen.blit(txt_surf, (self.console_rect.x+5, input_y))
+
         pygame.display.flip()
+
+    def open_draw_window(self, side):
+        def add_cards(selected):
+            if side == "player":
+                if len(self.player_cards) + len(selected) > MAX_HAND:
+                    print("Hand size over 12 not currently supported!")
+                    return
+                self.player_cards.extend(selected)
+            else:
+                if len(self.opponent_cards) + len(selected) > MAX_HAND:
+                    print("Hand size over 12 not currently supported!")
+                    return
+                self.opponent_cards.extend(selected)
+
+            self.load_cards()
+
+        root = tk.Tk()
+        root.withdraw()
+        draw_window = DrawCardWindow(root, add_cards)
+        # wait until window closes, non-blocking Pygame
+        root.wait_window(draw_window)
+        root.destroy()
 
     def run(self):
         running = True
@@ -138,7 +209,6 @@ class YGOSimulator:
         while running:
             mouse_pos = pygame.mouse.get_pos()
             hover_index = None
-
             for i, rect in enumerate(self.card_rects):
                 if rect.collidepoint(mouse_pos):
                     hover_index = i
@@ -147,10 +217,28 @@ class YGOSimulator:
             self.draw_field(hover_index)
 
             for event in pygame.event.get():
-                if event.type == pygame.QUIT or (event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE):
+                if event.type == pygame.QUIT:
                     running = False
+                elif event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_ESCAPE:
+                        running = False
+                    elif event.key == pygame.K_BACKSPACE:
+                        self.console_text = self.console_text[:-1]
+                    elif event.key == pygame.K_RETURN:
+                        cmd = self.console_text.strip().lower()
+                        if cmd == "drawplay":
+                            self.console_history.append(cmd)
+                            self.open_draw_window("player")
+                        elif cmd == "drawopp":
+                            self.console_history.append(cmd)
+                            self.open_draw_window("opponent")
+                        else:
+                            print(f"Unknown command: {cmd}")
+                        self.console_text = ""
+                    else:
+                        self.console_text += event.unicode
 
-            clock.tick(30)  # limit FPS
+            clock.tick(30)
 
         pygame.quit()
 
