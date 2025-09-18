@@ -1,11 +1,14 @@
 import tkinter as tk
-from tkinter import ttk, messagebox
-from PIL import Image, ImageTk
+from tkinter import messagebox
 import requests
+from PIL import Image
 from io import BytesIO
+import pygame
 import json
 
-# Load card info from JSON
+# -----------------------------
+# Load Card Data
+# -----------------------------
 with open('YGOProDeck_Card_Info.json', 'r', encoding='utf-8') as f:
     data = json.load(f)
 
@@ -16,148 +19,149 @@ for cdata in data['data']:
 CARD_WIDTH, CARD_HEIGHT = 80, 116
 SPACING = 10
 
-
-class CardSelector(tk.Toplevel):
-    def __init__(self, callback):
-        super().__init__()
+# -----------------------------
+# Tkinter Card Selection Window
+# -----------------------------
+class CardSelectionWindow(tk.Toplevel):
+    def __init__(self, master, callback):
+        super().__init__(master)
         self.title("Select Cards")
-        self.geometry("400x600")
+
         self.callback = callback
 
-        self.search_var = tk.StringVar()
-        self.search_var.trace("w", self.update_list)
+        all_cards = sorted(YGOProDeck_Card_Info.keys())
 
-        search_entry = ttk.Entry(self, textvariable=self.search_var, width=40)
-        search_entry.pack(pady=5)
+        tk.Label(self, text="Select Player Cards (1–5)").pack()
+        self.player_listbox = tk.Listbox(self, selectmode=tk.MULTIPLE, exportselection=False, width=40, height=20)
+        self.player_listbox.pack(side=tk.LEFT, padx=10)
+        for name in all_cards:
+            self.player_listbox.insert(tk.END, name)
 
-        self.listbox = tk.Listbox(self, selectmode=tk.SINGLE, width=40, height=20)
-        self.listbox.pack(padx=10, pady=5)
+        tk.Label(self, text="Select Opponent Cards (1–5)").pack()
+        self.opponent_listbox = tk.Listbox(self, selectmode=tk.MULTIPLE, exportselection=False, width=40, height=20)
+        self.opponent_listbox.pack(side=tk.RIGHT, padx=10)
+        for name in all_cards:
+            self.opponent_listbox.insert(tk.END, name)
 
-        btn_frame = tk.Frame(self)
-        btn_frame.pack(pady=5)
-
-        self.btn_player = ttk.Button(btn_frame, text="Add to Player", command=lambda: self.add_card("player"))
-        self.btn_player.grid(row=0, column=0, padx=5)
-
-        self.btn_opponent = ttk.Button(btn_frame, text="Add to Opponent", command=lambda: self.add_card("opponent"))
-        self.btn_opponent.grid(row=0, column=1, padx=5)
-
-        confirm_btn = ttk.Button(self, text="Confirm Selection", command=self.confirm_selection)
-        confirm_btn.pack(pady=10)
-
-        self.player_cards = []
-        self.opponent_cards = []
-
-        self.populate_listbox()
-
-    def populate_listbox(self):
-        self.listbox.delete(0, tk.END)
-        for name in sorted(YGOProDeck_Card_Info.keys()):
-            self.listbox.insert(tk.END, name)
-
-    def update_list(self, *args):
-        search_term = self.search_var.get().lower()
-        self.listbox.delete(0, tk.END)
-        for name in sorted(YGOProDeck_Card_Info.keys()):
-            if search_term in name.lower():
-                self.listbox.insert(tk.END, name)
-
-    def add_card(self, side):
-        selection = self.listbox.curselection()
-        if not selection:
-            return
-        name = self.listbox.get(selection[0])
-
-        if side == "player":
-            if len(self.player_cards) >= 5:
-                messagebox.showwarning("Limit Reached", "Player already has 5 cards.")
-                return
-            self.player_cards.append(name)
-        else:
-            if len(self.opponent_cards) >= 5:
-                messagebox.showwarning("Limit Reached", "Opponent already has 5 cards.")
-                return
-            self.opponent_cards.append(name)
-
-        print(f"Added {name} to {side}.")
+        tk.Button(self, text="Confirm", command=self.confirm_selection).pack(pady=10)
 
     def confirm_selection(self):
-        if not (1 <= len(self.player_cards) <= 5):
-            messagebox.showerror("Error", "You must select between 1 and 5 cards for the Player.")
+        player_cards = [self.player_listbox.get(i) for i in self.player_listbox.curselection()]
+        opponent_cards = [self.opponent_listbox.get(i) for i in self.opponent_listbox.curselection()]
+
+        if not (1 <= len(player_cards) <= 5):
+            messagebox.showerror("Error", "Select between 1 and 5 Player cards")
             return
-        if not (1 <= len(self.opponent_cards) <= 5):
-            messagebox.showerror("Error", "You must select between 1 and 5 cards for the Opponent.")
+        if not (1 <= len(opponent_cards) <= 5):
+            messagebox.showerror("Error", "Select between 1 and 5 Opponent cards")
             return
-        self.callback(self.player_cards, self.opponent_cards)
+
         self.destroy()
+        self.callback(player_cards, opponent_cards)
 
+# -----------------------------
+# Pygame Simulator
+# -----------------------------
+class YGOSimulator:
+    PREVIEW_WIDTH, PREVIEW_HEIGHT = 400, 583
 
-class YGOSimulator(tk.Tk):
     def __init__(self, player_cards, opponent_cards):
-        super().__init__()
-        self.title("Yu-Gi-Oh! Manual Simulator")
-        self.state('zoomed')  # maximize window
+        pygame.init()
+        self.screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
+        pygame.display.set_caption("Yu-Gi-Oh! Manual Simulator")
 
-        self.canvas = tk.Canvas(self, bg="green")
-        self.canvas.pack(fill=tk.BOTH, expand=True)
-
-        self.card_images = []  # list instead of dict
         self.player_cards = player_cards
         self.opponent_cards = opponent_cards
+        self.card_surfaces = []      # small card surfaces
+        self.card_rects = []         # small card rects for hover detection
+        self.card_preview_surfaces = []  # large preview surfaces
 
-        self.canvas.bind("<Configure>", self.on_first_resize)
-        self.has_drawn = False
+        self.load_cards()
+        self.run()
 
-    def fetch_card_image(self, card_id):
+    def fetch_card_surface(self, card_id, width, height):
         url = f"https://images.ygoprodeck.com/images/cards/{card_id}.jpg"
         resp = requests.get(url)
         img = Image.open(BytesIO(resp.content))
-        img = img.resize((CARD_WIDTH, CARD_HEIGHT), Image.LANCZOS)
-        photo = ImageTk.PhotoImage(img)
-        self.card_images.append(photo)  # keep every copy
-        return photo
+        img = img.resize((width, height), Image.LANCZOS)
+        mode = img.mode
+        size = img.size
+        data = img.tobytes()
+        return pygame.image.fromstring(data, size, mode)
 
-    def display_cards(self):
-        self.canvas.delete("all")
-        self.card_images.clear()  # reset but keep list structure
-
-        # Opponent cards
+    def load_cards(self):
+        # Opponent cards (top left)
         x, y = 10, 10
         for card in self.opponent_cards:
             card_id = YGOProDeck_Card_Info[card]["id"]
-            img = self.fetch_card_image(card_id)
-            self.canvas.create_image(x, y, image=img, anchor=tk.NW)
+            surface = self.fetch_card_surface(card_id, CARD_WIDTH, CARD_HEIGHT)
+            preview_surface = self.fetch_card_surface(card_id, self.PREVIEW_WIDTH, self.PREVIEW_HEIGHT)
+            rect = surface.get_rect(topleft=(x, y))
+            self.card_surfaces.append(surface)
+            self.card_preview_surfaces.append(preview_surface)
+            self.card_rects.append(rect)
             x += CARD_WIDTH + SPACING
 
-        # Player cards
-        canvas_height = self.canvas.winfo_height()
-        x, y = 10, canvas_height - CARD_HEIGHT - 10
+        # Player cards (bottom left)
+        screen_height = self.screen.get_height()
+        x, y = 10, screen_height - CARD_HEIGHT - 10
         for card in self.player_cards:
             card_id = YGOProDeck_Card_Info[card]["id"]
-            img = self.fetch_card_image(card_id)
-            self.canvas.create_image(x, y, image=img, anchor=tk.NW)
+            surface = self.fetch_card_surface(card_id, CARD_WIDTH, CARD_HEIGHT)
+            preview_surface = self.fetch_card_surface(card_id, self.PREVIEW_WIDTH, self.PREVIEW_HEIGHT)
+            rect = surface.get_rect(topleft=(x, y))
+            self.card_surfaces.append(surface)
+            self.card_preview_surfaces.append(preview_surface)
+            self.card_rects.append(rect)
             x += CARD_WIDTH + SPACING
 
-    def on_first_resize(self, event=None):
-        # only draw once the canvas has a valid size
-        if not self.has_drawn and self.canvas.winfo_height() > CARD_HEIGHT * 2:
-            self.has_drawn = True
-            self.display_cards()
+    def draw_field(self, hover_index=None):
+        self.screen.fill((0, 128, 0))  # green background
 
+        # Draw all cards
+        for surface, rect in zip(self.card_surfaces, self.card_rects):
+            self.screen.blit(surface, rect.topleft)
 
-def main():
-    root = tk.Tk()
-    root.withdraw()  # hide root while selecting cards
+        # Draw preview if hovering
+        if hover_index is not None:
+            preview_surface = self.card_preview_surfaces[hover_index]
+            preview_x = 10  # leftmost
+            preview_y = (self.screen.get_height() - self.PREVIEW_HEIGHT) // 2
+            self.screen.blit(preview_surface, (preview_x, preview_y))
 
-    def on_selection(player_cards, opponent_cards):
-        # Open simulator only after selection
-        root.destroy()  # close hidden root before launching simulator
-        sim = YGOSimulator(player_cards, opponent_cards)
-        sim.mainloop()
+        pygame.display.flip()
 
-    selector = CardSelector(on_selection)
-    selector.mainloop()
+    def run(self):
+        running = True
+        clock = pygame.time.Clock()
 
+        while running:
+            mouse_pos = pygame.mouse.get_pos()
+            hover_index = None
 
-if __name__ == "__main__":
-    main()
+            for i, rect in enumerate(self.card_rects):
+                if rect.collidepoint(mouse_pos):
+                    hover_index = i
+                    break
+
+            self.draw_field(hover_index)
+
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT or (event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE):
+                    running = False
+
+            clock.tick(30)  # limit FPS
+
+        pygame.quit()
+
+# -----------------------------
+# Main
+# -----------------------------
+def on_selection(player_cards, opponent_cards):
+    root.destroy()
+    YGOSimulator(player_cards, opponent_cards)
+
+root = tk.Tk()
+root.withdraw()  # hide main window
+CardSelectionWindow(root, on_selection)
+root.mainloop()
