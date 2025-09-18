@@ -18,6 +18,10 @@ CARD_WIDTH, CARD_HEIGHT = 68, 98
 SPACING = 10
 PREVIEW_WIDTH, PREVIEW_HEIGHT = 375, 546
 MAX_HAND = 17
+padding_x = 773
+padding_y = 109
+gap_x = 35
+gap_y = 15
 
 # -----------------------------
 # Tkinter Card Selection Window
@@ -186,8 +190,8 @@ class YGOSimulator:
 
         # Graveyard & banish zones (hardcoded example positions)
         self.graveyard_zones = [
-            pygame.Rect(150, self.screen_height//2 - CARD_HEIGHT//2, CARD_WIDTH, CARD_HEIGHT),  # Player
-            pygame.Rect(self.screen_width-300, self.screen_height//2 - CARD_HEIGHT//2, CARD_WIDTH, CARD_HEIGHT)  # Opponent
+            pygame.Rect(padding_x-CARD_WIDTH-gap_x, self.screen_height//2 - CARD_HEIGHT//2 - CARD_HEIGHT - gap_y, CARD_WIDTH, CARD_HEIGHT),  # Player
+            pygame.Rect(self.screen_width-CARD_WIDTH-14, self.screen_height//2 - CARD_HEIGHT//2 + CARD_HEIGHT + gap_y, CARD_WIDTH, CARD_HEIGHT)  # Opponent
         ]
         self.banish_zones = [
             pygame.Rect(150, self.screen_height//2 + CARD_HEIGHT + 20, CARD_WIDTH, CARD_HEIGHT),  # Player
@@ -207,10 +211,6 @@ class YGOSimulator:
     # -----------------------------
     def create_zones(self):
         zones = []
-        padding_x = 773
-        padding_y = 109
-        gap_x = 35
-        gap_y = 15
 
         # Player zones (bottom)
         start_y = self.screen_height - CARD_HEIGHT*2 - padding_y + 1 - gap_y
@@ -399,7 +399,7 @@ class YGOSimulator:
                             self.open_draw_window("player")
                         elif cmd == "drawopp":
                             self.open_draw_window("opponent")
-                        elif cmd == "graveyard":
+                        elif cmd == "gy":
                             self.select_cards_from_game_state(lambda selected: self.move_cards(selected,"graveyard"))
                         elif cmd == "banish":
                             self.select_cards_from_game_state(lambda selected: self.move_cards(selected,"banished"))
