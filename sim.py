@@ -5,6 +5,12 @@ from PIL import Image
 from io import BytesIO
 import requests
 import json
+import random
+import json
+import os
+from tkinter import filedialog, messagebox
+import subprocess
+import pathlib
 
 # -----------------------------
 # Load card data
@@ -152,84 +158,192 @@ class DrawCardWindow(tk.Toplevel):
 # Pygame Simulator
 # -----------------------------
 class YGOSimulator:
-    def __init__(self, player_cards, opponent_cards):
+    def __init__(self, player_deck, opponent_deck):
         pygame.init()
         self.screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
         pygame.display.set_caption("Yu-Gi-Oh! Simulator")
         self.screen_width, self.screen_height = self.screen.get_size()
 
-        # card instances: each card is a dict (unique instance)
-        # fields: uid, name, id, owner ('player'/'opponent'), location ('hand','field','graveyard','banished'),
-        #         surface_orig (PIL->pygame surface unrotated), surface (pygame surface currently used), preview (pygame),
-        #         rect (pygame.Rect)
+        self.next_uid = 0
+
+        # Cards: dicts with name, owner, location
         self.cards = []
-        self.next_uid = 1
 
-        # initialize card instances from provided lists (each name becomes its own instance)
-        for name in player_cards:
-            self.cards.append(self._create_card_instance(name, owner="player", location="hand"))
-        for name in opponent_cards:
-            self.cards.append(self._create_card_instance(name, owner="opponent", location="hand"))
+        # Draw 5 random cards from each deck as starting hand
+        import random
+        self.starting_hand_size = 5
+        player_hand = random.sample(player_deck, min(self.starting_hand_size, len(player_deck)))
+        opponent_hand = random.sample(opponent_deck, min(self.starting_hand_size, len(opponent_deck)))
 
-        # Life points for both players (keeps your existing keys 'play' and 'opp')
+        for name in player_hand:
+            inst = self._create_card_instance(name, owner="player", location="hand")
+            self.cards.append(inst)
+
+        for name in opponent_hand:
+            inst = self._create_card_instance(name, owner="opponent", location="hand")
+            self.cards.append(inst)
+        
+        self.dragged_card_uid = None
+        self.dragged_card_pos = (0,0)
+        self.drag_offset = (0,0)
+
+        # Life Points
         self.life_points = {"play": 8000, "opp": 8000}
 
-        # drawing caches (kept in sync by load_cards)
-        self.card_surfaces = []        # parallel to self.card_rects (for drawing)
+        # Card surfaces
+        self.card_surfaces = []
         self.card_rects = []
         self.card_preview_surfaces = []
 
-        # Console settings
+        # Console
         self.console_font = pygame.font.SysFont(None, 18)
         self.console_text = ""
         self.console_history = []
         console_width, console_height = 150, 100
-        self.console_rect = pygame.Rect(
-            380,
-            (self.screen_height - console_height)//2,
-            console_width,
-            console_height
-        )
+        self.console_rect = pygame.Rect(380, (self.screen_height - console_height)//2, console_width, console_height)
 
-        # Load mat background
+        # Load mat
         self.mat_surface = pygame.image.load("mat.jpg").convert()
         self.mat_surface = pygame.transform.scale(self.mat_surface, (self.screen_width, self.screen_height))
 
         # Zones
         self.zones = self.create_zones()
-
-        # Graveyard & banish zones (keep your placement)
         self.graveyard_zones = [
-            pygame.Rect(self.screen_width - CARD_WIDTH - 14, self.screen_height//2 - CARD_HEIGHT//2 + CARD_HEIGHT + gap_y, CARD_WIDTH, CARD_HEIGHT),  # Player
-            pygame.Rect(padding_x - CARD_WIDTH - gap_x, self.screen_height//2 - CARD_HEIGHT//2 - CARD_HEIGHT - gap_y, CARD_WIDTH, CARD_HEIGHT),  # Opponent
+            pygame.Rect(padding_x-CARD_WIDTH-gap_x, self.screen_height//2 - CARD_HEIGHT//2 - CARD_HEIGHT - gap_y, CARD_WIDTH, CARD_HEIGHT),
+            pygame.Rect(self.screen_width-CARD_WIDTH-14, self.screen_height//2 - CARD_HEIGHT//2 + CARD_HEIGHT + gap_y, CARD_WIDTH, CARD_HEIGHT)
         ]
-        # Note: banish zone rects store width,height swapped intentionally previously; we'll keep them sensible (width= CARD_WIDTH, height=CARD_HEIGHT)
         self.banish_zones = [
-            pygame.Rect(self.screen_width - CARD_WIDTH - 14 - gap_x + 5, self.screen_height//2 - CARD_HEIGHT//2 + gap_y + 10, CARD_HEIGHT, CARD_WIDTH),  # Player
-            pygame.Rect(padding_x - CARD_WIDTH - gap_x, self.screen_height//2 - CARD_HEIGHT//2, CARD_HEIGHT, CARD_WIDTH),  # Opponent
+            pygame.Rect(padding_x-CARD_WIDTH-gap_x, self.screen_height//2 - CARD_HEIGHT//2, CARD_HEIGHT, CARD_WIDTH),
+            pygame.Rect(self.screen_width-CARD_WIDTH-14-gap_x+5, self.screen_height//2 - CARD_HEIGHT//2 + gap_y + 10, CARD_HEIGHT, CARD_WIDTH)
         ]
 
-        # Drag state
-        self.dragged_card = None      # reference to card dict being dragged
+        # Dragging
         self.dragged_card_index = None
-        self.dragged_card_pos = (0, 0)
-        self.drag_offset = (0, 0)
+        self.dragged_card_pos = (0,0)
+        self.drag_offset = (0,0)
 
-        # initial layout
         self.load_cards()
         self.run()
+    
+    def load_decks(self):
+        """Load or build decks for both players."""
+        messagebox.showinfo("Deck Setup", "Choose Player Deck")
+
+        self.player_deck = self.ensure_deck_exists("Player")
+        self.opponent_deck = self.ensure_deck_exists("Opponent")
+
+        random.shuffle(self.player_deck)
+        random.shuffle(self.opponent_deck)
+
+    def ensure_deck_exists(self, who):
+        """Make sure a deck exists for this player. Launch deckbuilder if needed."""
+        decks_dir = pathlib.Path("decks")
+        decks_dir.mkdir(exist_ok=True)
+
+        file_path = filedialog.askopenfilename(
+            defaultextension=".json",
+            filetypes=[("JSON Files", "*.json")],
+            initialdir="decks",
+            title=f"Select {who} Deck"
+        )
+
+        if not file_path:
+            # Launch deckbuilder.py if no deck chosen
+            messagebox.showinfo("Deckbuilder", f"No {who} deck selected. Opening Deckbuilder...")
+            subprocess.run(["python", "deckbuilder.py"])
+            # Ask again after building
+            return self.ensure_deck_exists(who)
+
+        with open(file_path, "r", encoding="utf-8") as f:
+            deck_dict = json.load(f)
+
+        # Expand dict into list of card names
+        deck_list = []
+        for card, count in deck_dict.items():
+            deck_list.extend([card] * count)
+
+        if not deck_list:
+            messagebox.showerror("Error", f"{who} deck is empty! Rebuild it.")
+            subprocess.run(["python", "deckbuilder.py"])
+            return self.ensure_deck_exists(who)
+
+        return deck_list
+
+    def pick_deck(self):
+        """Load a deck from JSON and expand into a shuffled list."""
+        file_path = filedialog.askopenfilename(
+            defaultextension=".json",
+            filetypes=[("JSON Files", "*.json")],
+            initialdir="decks"
+        )
+        if not file_path:
+            messagebox.showerror("Error", "No deck chosen! Exiting.")
+            self.root.destroy()
+            return []
+
+        with open(file_path, "r", encoding="utf-8") as f:
+            deck_dict = json.load(f)
+
+        # Expand dict into list of card names
+        deck_list = []
+        for card, count in deck_dict.items():
+            deck_list.extend([card] * count)
+
+        if len(deck_list) < 1:
+            messagebox.showerror("Error", "Deck is empty!")
+            return []
+
+        return deck_list
+
+    def drawplay(self):
+        if not self.player_deck:
+            messagebox.showinfo("Deck Empty", "Player deck is empty!")
+            return
+        card_name = self.player_deck.pop(0)  # draw top card
+        self.add_card_to_hand(card_name, "player")
+
+    def drawopp(self):
+        if not self.opponent_deck:
+            messagebox.showinfo("Deck Empty", "Opponent deck is empty!")
+            return
+        card_name = self.opponent_deck.pop(0)
+        self.add_card_to_hand(card_name, "opponent")
+
+    def add_card_to_hand(self, card_name, owner):
+        """Create card instance on the canvas."""
+        x = random.randint(50, 400)
+        y = 500 if owner == "player" else 100
+        rect = self.canvas.create_rectangle(x, y, x+60, y+90, fill="white")
+        text = self.canvas.create_text(x+30, y+45, text=card_name[:10], font=("Arial", 8))
+        card_id = rect
+        self.cards[card_id] = {
+            "name": card_name,
+            "owner": owner,
+            "rect": rect,
+            "text": text,
+            "zone": "hand"
+        }
+        self.card_positions[card_id] = (x, y)
+        self.game_state[f"{owner}_hand"].append(card_id)
 
     # -----------------------------
     # Helper: create a unique card instance (fetch images once)
     # -----------------------------
     def _create_card_instance(self, card_name, owner="player", location="hand"):
+        if not hasattr(self, "next_uid"):
+            self.next_uid = 0
         uid = self.next_uid
         self.next_uid += 1
+
         card_id = YGOProDeck_Card_Info[card_name]["id"]
-        # fetch surfaces once and store original (unrotated)
+
+        # Fetch surfaces
         surface_orig = self._fetch_surface_from_id(card_id, CARD_WIDTH, CARD_HEIGHT)
         preview = self._fetch_surface_from_id(card_id, PREVIEW_WIDTH, PREVIEW_HEIGHT)
-        # initial surface equals orig, rotation handled later based on location
+
+        # Initial rect at 0,0 (will be repositioned in load_cards)
+        rect = surface_orig.get_rect(topleft=(0,0))
+
         instance = {
             "uid": uid,
             "name": card_name,
@@ -237,13 +351,15 @@ class YGOSimulator:
             "owner": owner,
             "location": location,
             "surface_orig": surface_orig,
-            "surface": surface_orig,   # may be rotated copy
+            "surface": surface_orig,   # may rotate later if banished
             "preview": preview,
-            "rect": surface_orig.get_rect(topleft=(0, 0)),
+            "rect": rect,
         }
-        # if initially banished, rotate surface
+
+        # Rotate surface if banished
         if location == "banished":
             instance["surface"] = pygame.transform.rotate(surface_orig, 90)
+
         return instance
 
     def _fetch_surface_from_id(self, card_id, width, height):
@@ -271,22 +387,26 @@ class YGOSimulator:
     # Create 20 zones (2 rows of 5 per side)
     # -----------------------------
     def create_zones(self):
-        zones = []
+        self.player_field_zones = []
+        self.opponent_field_zones = []
+
         # Player zones (bottom)
         start_y = self.screen_height - CARD_HEIGHT*2 - padding_y + 1 - gap_y
         for row in range(2):
             y = start_y + row*(CARD_HEIGHT + gap_y)
             for col in range(5):
                 x = padding_x + col*(CARD_WIDTH + gap_x)
-                zones.append(pygame.Rect(x, y, CARD_WIDTH, CARD_HEIGHT))
+                self.player_field_zones.append(pygame.Rect(x, y, CARD_WIDTH, CARD_HEIGHT))
+
         # Opponent zones (top)
         start_y = padding_y
         for row in range(2):
             y = start_y + row*(CARD_HEIGHT + gap_y)
             for col in range(5):
                 x = padding_x + col*(CARD_WIDTH + gap_x)
-                zones.append(pygame.Rect(x, y, CARD_WIDTH, CARD_HEIGHT))
-        return zones
+                self.opponent_field_zones.append(pygame.Rect(x, y, CARD_WIDTH, CARD_HEIGHT))
+
+        return self.player_field_zones + self.opponent_field_zones  # old full list
 
     # -----------------------------
     # Fetch card surface wrapper (by name)
@@ -296,116 +416,109 @@ class YGOSimulator:
         return self._fetch_surface_from_id(card_id, width, height)
 
     # -----------------------------
-    # Load card positions and drawing arrays
+    # Load card surfaces
     # -----------------------------
     def load_cards(self):
-        # Recompute surfaces/rects lists in same order as self.cards
         self.card_surfaces.clear()
         self.card_rects.clear()
         self.card_preview_surfaces.clear()
 
-        # Hand layout positions
+        # Starting positions for new hand cards
         player_x, player_y = 0, self.screen_height - CARD_HEIGHT
         opponent_x, opponent_y = 0, 0
 
-        # track which zones are occupied (so we snap cards to empty zone)
-        occupied_zones = []
+        field_positions = self.zones
 
         for card in self.cards:
-            # determine surface (rotate for banished)
-            if card["location"] == "banished":
-                # rotate original by 90 degrees (keep consistent)
-                surf = pygame.transform.rotate(card["surface_orig"], 90)
-            else:
-                surf = card["surface_orig"]
-            card["surface"] = surf
-            # preview
-            preview = card.get("preview")
-            # determine rect based on location & owner
+            # Skip cards already snapped to zones or dropped manually
+            if card.get("rect") is not None and card.get("placed", False):
+                self.card_surfaces.append(card["surface"])
+                self.card_preview_surfaces.append(card["preview"])
+                self.card_rects.append(card["rect"])
+                continue
+
+            surface = card.get("surface") or self.fetch_card_surface(card["name"], CARD_WIDTH, CARD_HEIGHT)
+            preview = card.get("preview") or self.fetch_card_surface(card["name"], PREVIEW_WIDTH, PREVIEW_HEIGHT)
+
             if card["location"] == "hand":
                 if card["owner"] == "player":
-                    rect = surf.get_rect(topleft=(player_x, player_y))
+                    rect = surface.get_rect(topleft=(player_x, player_y))
                     player_x += CARD_WIDTH + SPACING
                 else:
-                    rect = surf.get_rect(topleft=(opponent_x, opponent_y))
+                    rect = surface.get_rect(topleft=(opponent_x, opponent_y))
                     opponent_x += CARD_WIDTH + SPACING
             elif card["location"] == "field":
-                rect = None
-                # place in first free zone
-                for zone in self.zones:
-                    if zone not in occupied_zones:
-                        # ensure no existing card rect collides with this zone
-                        if not any(r.colliderect(zone) for r in self.card_rects):
-                            rect = surf.get_rect(topleft=(zone.x, zone.y))
-                            occupied_zones.append(zone)
-                            break
-                if rect is None:
-                    # fallback: place offscreen if no free zone
-                    rect = surf.get_rect(topleft=(0, 0))
+                for zone in field_positions:
+                    if not any(c["rect"].colliderect(zone) for c in self.cards if c["location"]=="field"):
+                        rect = surface.get_rect(topleft=(zone.x, zone.y))
+                        break
             elif card["location"] == "graveyard":
-                # stack on appropriate graveyard zone (player-> index0, opponent-> index1)
-                if card["owner"] == "player":
-                    gx, gy = self.graveyard_zones[0].topleft
-                else:
-                    gx, gy = self.graveyard_zones[1].topleft
-                rect = surf.get_rect(topleft=(gx, gy))
+                rect = surface.get_rect(
+                    topleft=(self.graveyard_zones[0].x, self.graveyard_zones[0].y)
+                    if card["owner"]=="player" else
+                    (self.graveyard_zones[1].x, self.graveyard_zones[1].y)
+                )
             elif card["location"] == "banished":
-                if card["owner"] == "player":
-                    bx, by = self.banish_zones[0].topleft
-                else:
-                    bx, by = self.banish_zones[1].topleft
-                rect = surf.get_rect(topleft=(bx, by))
-            else:
-                rect = surf.get_rect(topleft=(0, 0))
+                rect = surface.get_rect(
+                    topleft=(self.banish_zones[0].x, self.banish_zones[0].y)
+                    if card["owner"]=="player" else
+                    (self.banish_zones[1].x, self.banish_zones[1].y)
+                )
+                surface = pygame.transform.rotate(surface, 90)
 
             card["rect"] = rect
-            self.card_surfaces.append(card["surface"])
+            card["surface"] = surface
+            card["preview"] = preview
+            card["placed"] = True  # mark as positioned
+
+            self.card_surfaces.append(surface)
             self.card_preview_surfaces.append(preview)
             self.card_rects.append(rect)
 
     # -----------------------------
-    # Drawing
+    # Draw everything
     # -----------------------------
     def draw_field(self, hover_index=None):
-        self.screen.blit(self.mat_surface, (0, 0))
+        self.screen.blit(self.mat_surface, (0,0))
 
         # Draw zones
         for zone in self.zones:
-            pygame.draw.rect(self.screen, (100, 100, 100), zone, 2)
-        # grave/banish visual
+            pygame.draw.rect(self.screen, (100,100,100), zone, 2)
         for gy in self.graveyard_zones:
-            pygame.draw.rect(self.screen, (150, 0, 0), gy, 2)
+            pygame.draw.rect(self.screen, (150,0,0), gy, 2)
         for bz in self.banish_zones:
-            pygame.draw.rect(self.screen, (0, 0, 150), bz, 2)
+            pygame.draw.rect(self.screen, (0,0,150), bz, 2)
 
-        # zone highlight while dragging
-        if self.dragged_card is not None:
-            for zone in self.zones + self.graveyard_zones + self.banish_zones:
+        # Highlight dragged over zone
+        if self.dragged_card_uid is not None:
+            for zone in self.zones:
                 if zone.collidepoint(pygame.mouse.get_pos()):
-                    pygame.draw.rect(self.screen, (255, 255, 0), zone, 3)
+                    pygame.draw.rect(self.screen, (255,255,0), zone, 3)
 
-        # draw cards (non-dragged)
-        for i, card in enumerate(self.cards):
-            if self.dragged_card is not None and card is self.dragged_card:
-                continue
-            self.screen.blit(card["surface"], card["rect"].topleft)
+        # Draw cards (non-dragged)
+        for card in self.cards:
+            if card.get("surface") is None or card.get("rect") is None:
+                continue  # skip cards not fully initialized yet
+            if card["uid"] != self.dragged_card_uid:
+                self.screen.blit(card["surface"], card["rect"].topleft)
 
-        # draw dragged on top
-        if self.dragged_card is not None:
-            # use dragged_card rect (we keep it updated while dragging)
-            self.screen.blit(self.dragged_card["surface"], self.dragged_card["rect"].topleft)
+        # Draw dragged card on top
+        if self.dragged_card_uid is not None:
+            card = next((c for c in self.cards if c["uid"] == self.dragged_card_uid), None)
+            if card is not None and card.get("surface") is not None:
+                self.screen.blit(card["surface"], self.dragged_card_pos)
 
-        # draw preview for hover card
-        if hover_index is not None and 0 <= hover_index < len(self.cards):
-            # choose preview from that card
-            preview = self.cards[hover_index]["preview"]
-            preview_x = 0
-            preview_y = (self.screen.get_height() - PREVIEW_HEIGHT) // 2
-            self.screen.blit(preview, (preview_x, preview_y))
+        # Card preview
+        if hover_index is not None and hover_index < len(self.cards):
+            preview_surface = self.cards[hover_index].get("preview")
+            if preview_surface:
+                preview_x = 0
+                preview_y = (self.screen_height - PREVIEW_HEIGHT)//2
+                self.screen.blit(preview_surface, (preview_x, preview_y))
 
-        # console
-        pygame.draw.rect(self.screen, (50, 50, 50), self.console_rect)
-        pygame.draw.rect(self.screen, (200, 200, 200), self.console_rect, 2)
+        # Console
+        pygame.draw.rect(self.screen, (50,50,50), self.console_rect)
+        pygame.draw.rect(self.screen, (200,200,200), self.console_rect, 2)
         line_height = self.console_font.get_height() + 2
         max_history = self.console_rect.height // line_height - 1
         display_text = self.console_text
@@ -413,15 +526,15 @@ class YGOSimulator:
         while self.console_font.size(display_text)[0] > max_width and len(display_text) > 0:
             display_text = display_text[1:]
         for i, cmd in enumerate(self.console_history[-max_history:]):
-            txt_surf = self.console_font.render(cmd, True, (0, 255, 0))
-            self.screen.blit(txt_surf, (self.console_rect.x + 5, self.console_rect.y + i * line_height))
-        txt_surf = self.console_font.render(display_text, True, (255, 255, 255))
-        self.screen.blit(txt_surf, (self.console_rect.x + 5, self.console_rect.y + self.console_rect.height - line_height))
+            txt_surf = self.console_font.render(cmd, True, (0,255,0))
+            self.screen.blit(txt_surf, (self.console_rect.x+5, self.console_rect.y + i*line_height))
+        txt_surf = self.console_font.render(display_text, True, (255,255,255))
+        self.screen.blit(txt_surf, (self.console_rect.x+5, self.console_rect.y + self.console_rect.height - line_height))
 
-        # Life Points display
+        # Life Points
         lp_font = pygame.font.SysFont(None, 24)
-        player_lp_text = lp_font.render(f"{self.life_points['play']}", True, (255, 255, 255))
-        opponent_lp_text = lp_font.render(f"{self.life_points['opp']}", True, (255, 255, 255))
+        player_lp_text = lp_font.render(f"{self.life_points['play']}", True, (255,255,255))
+        opponent_lp_text = lp_font.render(f"{self.life_points['opp']}", True, (255,255,255))
         self.screen.blit(player_lp_text, (self.screen_width - 700, self.screen_height//2 + 35))
         self.screen.blit(opponent_lp_text, (self.screen_width - 115, self.screen_height//2 - 50))
 
@@ -551,77 +664,86 @@ class YGOSimulator:
                         self.console_text += event.unicode
 
                 elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-                    # iterate in reverse order so top-most card is picked first
-                    for i in range(len(self.card_rects)-1, -1, -1):
-                        rect = self.card_rects[i]
-                        if rect.collidepoint(event.pos):
-                            self.dragged_card_index = i
-                            self.dragged_card = self.cards[i]
-                            self.drag_offset = (event.pos[0] - rect.x, event.pos[1] - rect.y)
+                    for card in reversed(self.cards):  # topmost first
+                        if card["rect"].collidepoint(event.pos):
+                            self.dragged_card_uid = card["uid"]
+                            self.drag_offset = (event.pos[0] - card["rect"].x, event.pos[1] - card["rect"].y)
+                            self.dragged_card_pos = (card["rect"].x, card["rect"].y)
                             break
 
                 elif event.type == pygame.MOUSEBUTTONUP and event.button == 1:
-                    if self.dragged_card is not None:
-                        # check field zones
+                    if self.dragged_card_uid is not None:
+                        card = next(c for c in self.cards if c["uid"] == self.dragged_card_uid)
                         snapped = False
+
+                        # Snap to field
                         for zone in self.zones:
                             if zone.collidepoint(event.pos):
-                                # set card to field and snap rect
-                                self.dragged_card["location"] = "field"
-                                self.dragged_card["rect"].topleft = (zone.x, zone.y)
+                                card["location"] = "field"
+                                card["rect"].topleft = (zone.x, zone.y)
                                 snapped = True
                                 break
-                        # check graveyard zones
+
+                        # Snap to graveyard
                         if not snapped:
                             for idx, gy in enumerate(self.graveyard_zones):
                                 if gy.collidepoint(event.pos):
-                                    self.dragged_card["location"] = "graveyard"
-                                    # set to appropriate owner grave rect
-                                    if self.dragged_card["owner"] == "player":
-                                        self.dragged_card["rect"].topleft = self.graveyard_zones[0].topleft
-                                    else:
-                                        self.dragged_card["rect"].topleft = self.graveyard_zones[1].topleft
+                                    card["location"] = "graveyard"
+                                    card["rect"].topleft = self.graveyard_zones[0 if card["owner"]=="player" else 1].topleft
                                     snapped = True
                                     break
-                        # check banish zones
+
+                        # Snap to banish
                         if not snapped:
                             for idx, bz in enumerate(self.banish_zones):
                                 if bz.collidepoint(event.pos):
-                                    self.dragged_card["location"] = "banished"
-                                    # rotate surface
-                                    self.dragged_card["surface"] = pygame.transform.rotate(self.dragged_card["surface_orig"], 90)
-                                    if self.dragged_card["owner"] == "player":
-                                        self.dragged_card["rect"].topleft = self.banish_zones[0].topleft
-                                    else:
-                                        self.dragged_card["rect"].topleft = self.banish_zones[1].topleft
+                                    card["location"] = "banished"
+                                    card["rect"].topleft = self.banish_zones[0 if card["owner"]=="player" else 1].topleft
+                                    card["surface"] = pygame.transform.rotate(card["surface_orig"], 90)
                                     snapped = True
                                     break
-                        # if not snapped, leave it where released (rect already updated during motion)
-                        self.load_cards()  # recompute arrays & ensure consistent ordering
-                        self.dragged_card = None
-                        self.dragged_card_index = None
+
+                        # Mark as placed manually
+                        card["placed"] = True
+                        self.dragged_card_uid = None
 
                 elif event.type == pygame.MOUSEMOTION:
-                    if self.dragged_card is not None:
-                        # move rect following mouse
+                    if self.dragged_card_uid is not None:
+                        card = next(c for c in self.cards if c["uid"] == self.dragged_card_uid)
                         new_x = event.pos[0] - self.drag_offset[0]
                         new_y = event.pos[1] - self.drag_offset[1]
-                        self.dragged_card["rect"].topleft = (new_x, new_y)
-                        # reflect change into card_rects for hover detection if needed
-                        self.load_cards()  # lightweight enough here to keep arrays consistent
+                        self.dragged_card_pos = (new_x, new_y)
+                        card["rect"].topleft = self.dragged_card_pos  # optional live update
 
             clock.tick(30)
 
         pygame.quit()
 
-# -----------------------------
-# Main
-# -----------------------------
-def on_selection(player_cards, opponent_cards):
-    root.destroy()
-    YGOSimulator(player_cards, opponent_cards)
+from deckbuilder import build_deck_interactively
+from sim import YGOSimulator  # your simulator class
 
-root = tk.Tk()
-root.withdraw()  # hide main window
-CardSelectionWindow(root, on_selection)
-root.mainloop()
+def main():
+    # Build/load decks
+    print("Select Player Deck")
+    player_deck = build_deck_interactively()
+    print("Select Opponent Deck")
+    opponent_deck = build_deck_interactively()
+
+    # Draw first 5 cards at random for starting field/hand
+    def draw_starting_hand(deck, count=5):
+        deck_list = []
+        for name, copies in deck.items():
+            deck_list.extend([name] * copies)
+        random.shuffle(deck_list)
+        hand = deck_list[:count]
+        return hand
+
+    player_starting_hand = draw_starting_hand(player_deck)
+    opponent_starting_hand = draw_starting_hand(opponent_deck)
+
+    # Start simulator
+    sim = YGOSimulator(player_starting_hand, opponent_starting_hand)
+    sim.run()
+
+if __name__ == "__main__":
+    main()
