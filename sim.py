@@ -26,41 +26,49 @@ class CardSelectionWindow(tk.Toplevel):
     def __init__(self, master, callback):
         super().__init__(master)
         self.title("Select Cards")
+        self.state("zoomed")  # Windows only; for cross-platform, see below
         self.callback = callback
+        self.protocol("WM_DELETE_WINDOW", self.on_close)  # handle window close
 
-        all_cards = sorted(YGOProDeck_Card_Info.keys())
-        self.all_cards = all_cards  # keep full list for filtering
+        self.all_cards = sorted(YGOProDeck_Card_Info.keys())
 
-        # Player frame
+        # --- Player frame ---
         player_frame = tk.Frame(self)
-        player_frame.pack(side=tk.LEFT, padx=10, pady=10)
-        tk.Label(player_frame, text="Select Player Cards (1–5)").pack()
+        player_frame.place(relx=0.025, rely=0.05, relwidth=0.45, relheight=0.85)
+
+        tk.Label(player_frame, text="Select Player Cards (1–5)").place(relx=0.5, rely=0.02, anchor='n')
+
         self.player_search_var = tk.StringVar()
         self.player_search_var.trace_add("write", self.update_player_list)
-        tk.Entry(player_frame, textvariable=self.player_search_var).pack(pady=2)
-        self.player_listbox = tk.Listbox(player_frame, selectmode=tk.MULTIPLE, exportselection=False, width=40, height=20)
-        self.player_listbox.pack()
+        tk.Entry(player_frame, textvariable=self.player_search_var).place(relx=0.5, rely=0.08, anchor='n', relwidth=0.9)
 
-        # --- Player selection ---
-        for name in all_cards:
+        self.player_listbox = tk.Listbox(player_frame, selectmode=tk.MULTIPLE, exportselection=False)
+        self.player_listbox.place(relx=0.05, rely=0.15, relwidth=0.9, relheight=0.8)
+
+        for name in self.all_cards:
             self.player_listbox.insert(tk.END, name)
 
-        # Opponent frame
+        # --- Opponent frame ---
         opponent_frame = tk.Frame(self)
-        opponent_frame.pack(side=tk.LEFT, padx=10, pady=10)
-        tk.Label(opponent_frame, text="Select Opponent Cards (1–5)").pack()
+        opponent_frame.place(relx=0.525, rely=0.05, relwidth=0.45, relheight=0.85)
+
+        tk.Label(opponent_frame, text="Select Opponent Cards (1–5)").place(relx=0.5, rely=0.02, anchor='n')
+
         self.opponent_search_var = tk.StringVar()
         self.opponent_search_var.trace_add("write", self.update_opponent_list)
-        tk.Entry(opponent_frame, textvariable=self.opponent_search_var).pack(pady=2)
-        self.opponent_listbox = tk.Listbox(opponent_frame, selectmode=tk.MULTIPLE, exportselection=False, width=40, height=20)
-        self.opponent_listbox.pack()
+        tk.Entry(opponent_frame, textvariable=self.opponent_search_var).place(relx=0.5, rely=0.08, anchor='n', relwidth=0.9)
 
-        # --- Opponent selection ---
-        for name in all_cards:
+        self.opponent_listbox = tk.Listbox(opponent_frame, selectmode=tk.MULTIPLE, exportselection=False)
+        self.opponent_listbox.place(relx=0.05, rely=0.15, relwidth=0.9, relheight=0.8)
+
+        for name in self.all_cards:
             self.opponent_listbox.insert(tk.END, name)
 
-        tk.Button(self, text="Confirm", command=self.confirm_selection).pack(pady=10)
+        # --- Confirm button ---
+        confirm_button = tk.Button(self, text="Confirm", command=self.confirm_selection)
+        confirm_button.place(relx=0.5, rely=0.95, anchor='s')
 
+    # --- Update listboxes dynamically ---
     def update_player_list(self, *args):
         search = self.player_search_var.get().lower()
         self.player_listbox.delete(0, tk.END)
@@ -75,33 +83,26 @@ class CardSelectionWindow(tk.Toplevel):
             if search in name.lower():
                 self.opponent_listbox.insert(tk.END, name)
 
+    # --- Confirm selection ---
     def confirm_selection(self):
         player_cards = [self.player_listbox.get(i) for i in self.player_listbox.curselection()]
         opponent_cards = [self.opponent_listbox.get(i) for i in self.opponent_listbox.curselection()]
 
         if not (1 <= len(player_cards) <= 5):
-            messagebox.showerror("Error", "Select between 1 and 5 Player cards")
+            tk.messagebox.showerror("Error", "Select between 1 and 5 Player cards")
             return
         if not (1 <= len(opponent_cards) <= 5):
-            messagebox.showerror("Error", "Select between 1 and 5 Opponent cards")
+            tk.messagebox.showerror("Error", "Select between 1 and 5 Opponent cards")
             return
 
         self.destroy()
         self.callback(player_cards, opponent_cards)
 
-    def confirm_selection(self):
-        player_cards = [self.player_listbox.get(i) for i in self.player_listbox.curselection()]
-        opponent_cards = [self.opponent_listbox.get(i) for i in self.opponent_listbox.curselection()]
-
-        if not (1 <= len(player_cards) <= 5):
-            messagebox.showerror("Error", "Select between 1 and 5 Player cards")
-            return
-        if not (1 <= len(opponent_cards) <= 5):
-            messagebox.showerror("Error", "Select between 1 and 5 Opponent cards")
-            return
-
+    # --- Exit program if user closes window ---
+    def on_close(self):
         self.destroy()
-        self.callback(player_cards, opponent_cards)
+        import sys
+        sys.exit()  # ensures program exits
 
 # -----------------------------
 # Tkinter Draw Card Window
@@ -110,6 +111,7 @@ class DrawCardWindow(tk.Toplevel):
     def __init__(self, master, callback):
         super().__init__(master)
         self.title("Draw Cards")
+        self.state("zoomed")  # Windows only; for cross-platform, see below
         self.callback = callback
 
         self.all_cards = sorted(YGOProDeck_Card_Info.keys())
