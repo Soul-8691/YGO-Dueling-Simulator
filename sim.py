@@ -14,9 +14,9 @@ with open('YGOProDeck_Card_Info.json', 'r', encoding='utf-8') as f:
 
 YGOProDeck_Card_Info = {c['name']: c for c in data['data']}
 
-CARD_WIDTH, CARD_HEIGHT = 80, 116
+CARD_WIDTH, CARD_HEIGHT = 68, 98
 SPACING = 10
-PREVIEW_WIDTH, PREVIEW_HEIGHT = 350, 510
+PREVIEW_WIDTH, PREVIEW_HEIGHT = 375, 546
 MAX_HAND = 12
 
 # -----------------------------
@@ -163,12 +163,12 @@ class YGOSimulator:
         self.card_preview_surfaces = []
 
         # Console settings
-        self.console_font = pygame.font.SysFont(None, 24)
+        self.console_font = pygame.font.SysFont(None, 18)
         self.console_text = ""
         self.console_history = []  # store valid commands
-        console_width, console_height = 150, 150
+        console_width, console_height = 150, 100
         self.console_rect = pygame.Rect(
-            (self.screen_width - console_width)//2,
+            380,
             (self.screen_height - console_height)//2,
             console_width,
             console_height
@@ -195,13 +195,13 @@ class YGOSimulator:
     def create_zones(self):
         zones = []
 
-        padding_x = 50
-        padding_y = 50
-        gap_x = (self.screen_width - 2*padding_x - 5*CARD_WIDTH)/4
-        gap_y = 30
+        padding_x = 773
+        padding_y = 109
+        gap_x = 35
+        gap_y = 15
 
         # Player zones (bottom)
-        start_y = self.screen_height - CARD_HEIGHT*2 - padding_y
+        start_y = self.screen_height - CARD_HEIGHT*2 - padding_y + 1 - gap_y
         for row in range(2):
             y = start_y + row*(CARD_HEIGHT + gap_y)
             for col in range(5):
@@ -240,7 +240,7 @@ class YGOSimulator:
         self.card_preview_surfaces.clear()
 
         # Opponent cards (top left)
-        x, y = 10, 10
+        x, y = 0, 0
         for card in self.opponent_cards:
             card_id = YGOProDeck_Card_Info[card]["id"]
             surface = self.fetch_card_surface(card_id, CARD_WIDTH, CARD_HEIGHT)
@@ -252,7 +252,7 @@ class YGOSimulator:
             x += CARD_WIDTH + SPACING
 
         # Player cards (bottom left)
-        x, y = 10, self.screen_height - CARD_HEIGHT - 10
+        x, y = 0, self.screen_height - CARD_HEIGHT
         for card in self.player_cards:
             card_id = YGOProDeck_Card_Info[card]["id"]
             surface = self.fetch_card_surface(card_id, CARD_WIDTH, CARD_HEIGHT)
@@ -292,7 +292,7 @@ class YGOSimulator:
         # Draw preview
         if hover_index is not None:
             preview_surface = self.card_preview_surfaces[hover_index]
-            preview_x = 10
+            preview_x = 0
             preview_y = (self.screen.get_height() - PREVIEW_HEIGHT)//2
             self.screen.blit(preview_surface, (preview_x, preview_y))
 
