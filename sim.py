@@ -194,8 +194,8 @@ class YGOSimulator:
             pygame.Rect(self.screen_width-CARD_WIDTH-14, self.screen_height//2 - CARD_HEIGHT//2 + CARD_HEIGHT + gap_y, CARD_WIDTH, CARD_HEIGHT)  # Opponent
         ]
         self.banish_zones = [
-            pygame.Rect(150, self.screen_height//2 + CARD_HEIGHT + 20, CARD_WIDTH, CARD_HEIGHT),  # Player
-            pygame.Rect(self.screen_width-300, self.screen_height//2 + CARD_HEIGHT + 20, CARD_WIDTH, CARD_HEIGHT)  # Opponent
+            pygame.Rect(padding_x-CARD_WIDTH-gap_x, self.screen_height//2 - CARD_HEIGHT//2, CARD_HEIGHT, CARD_WIDTH),  # Player
+            pygame.Rect(self.screen_width-CARD_WIDTH-14-gap_x+5, self.screen_height//2 - CARD_HEIGHT//2 + gap_y + 10, CARD_HEIGHT, CARD_WIDTH)  # Opponent
         ]
 
         # Drag state
