@@ -164,6 +164,9 @@ class YGOSimulator:
             self.cards.append({"name": card, "owner": "player", "location": "hand"})
         for card in opponent_cards:
             self.cards.append({"name": card, "owner": "opponent", "location": "hand"})
+        
+        # Life points for both players
+        self.life_points = {"play": 8000, "opp": 8000}
 
         self.card_surfaces = []
         self.card_rects = []
@@ -205,6 +208,14 @@ class YGOSimulator:
 
         self.load_cards()
         self.run()
+    
+    def adjust_life_points(self, target, amount):
+        if target not in self.life_points:
+            print(f"Invalid LP target: {target}")
+            return
+        self.life_points[target] += amount
+        if self.life_points[target] < 0:
+            self.life_points[target] = 0
 
     # -----------------------------
     # Create 20 zones (2 rows of 5 per side)
@@ -338,6 +349,13 @@ class YGOSimulator:
             self.screen.blit(txt_surf, (self.console_rect.x+5, self.console_rect.y + i*line_height))
         txt_surf = self.console_font.render(display_text, True, (255,255,255))
         self.screen.blit(txt_surf, (self.console_rect.x+5, self.console_rect.y + self.console_rect.height - line_height))
+        # Life Points display
+        lp_font = pygame.font.SysFont(None, 24)
+        player_lp_text = lp_font.render(f"{self.life_points['play']}", True, (255, 255, 255))
+        opponent_lp_text = lp_font.render(f"{self.life_points['opp']}", True, (255, 255, 255))
+
+        self.screen.blit(player_lp_text, (self.screen_width - 700, self.screen_height//2 + 35))
+        self.screen.blit(opponent_lp_text, (self.screen_width - 115, self.screen_height//2 - 50))
         pygame.display.flip()
 
     # -----------------------------
@@ -407,6 +425,20 @@ class YGOSimulator:
                             self.select_cards_from_game_state(lambda selected: self.move_cards(selected,"graveyard"))
                         elif cmd == "bz":
                             self.select_cards_from_game_state(lambda selected: self.move_cards(selected,"banished"))
+                        elif cmd.startswith("lp "):
+                            parts = cmd.split()
+                            if len(parts) == 3:
+                                target, change = parts[1], parts[2]
+                                if target in ("play", "opp") and (change.startswith("+") or change.startswith("-")):
+                                    try:
+                                        amount = int(change)
+                                        self.adjust_life_points(target, amount)
+                                    except ValueError:
+                                        print(f"Invalid LP amount: {change}")
+                                else:
+                                    print("Usage: lp [play|opp] [+/-number]")
+                            else:
+                                print("Usage: lp [play|opp] [+/-number]")
                         else:
                             print(f"Unknown command: {cmd}")
                         self.console_text = ""
