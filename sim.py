@@ -659,49 +659,44 @@ class YGOSimulator:
         root.destroy()
 
     # -----------------------------
-    # Add drawn cards (from draw window) with searchable list and multiple copies
+    # Add cards from main deck to hand using GUI (for addhand play/opp)
     # -----------------------------
     def open_draw_window(self, side):
-        class MultiDrawCardWindow(tk.Toplevel):
-            def __init__(self, master, all_cards, callback):
-                super().__init__(master)
-                self.title("Draw Cards")
-                self.callback = callback
-                self.all_cards = sorted(all_cards)  # sorted list of all card names
+        deck_list = self.player_deck if side == "player" else self.opponent_deck
+        if not deck_list:
+            tk.messagebox.showinfo("Empty Deck", f"{side.capitalize()} deck is empty!")
+            return
 
-                # --- Search Entry ---
+        class AddHandCardWindow(tk.Toplevel):
+            def __init__(self, master, available_cards, callback):
+                super().__init__(master)
+                self.title(f"Add Cards to {side.capitalize()} Hand")
+                self.callback = callback
+                self.available_cards = available_cards.copy()
+
                 tk.Label(self, text="Search Card:").grid(row=0, column=0, padx=5, pady=5)
                 self.search_var = tk.StringVar()
                 self.search_var.trace_add("write", self.update_list)
                 self.search_entry = tk.Entry(self, textvariable=self.search_var)
                 self.search_entry.grid(row=0, column=1, padx=5, pady=5)
 
-                # --- Listbox ---
                 self.listbox = tk.Listbox(self, selectmode=tk.SINGLE, width=40, height=15)
                 self.listbox.grid(row=1, column=0, columnspan=2, padx=5, pady=5)
-                for name in self.all_cards:
-                    self.listbox.insert(tk.END, name)
+                self.update_list()
 
-                # --- Copies ---
-                tk.Label(self, text="Copies:").grid(row=2, column=0, padx=5, pady=5)
-                self.copies_var = tk.IntVar(value=1)
-                self.copies_entry = tk.Entry(self, textvariable=self.copies_var)
-                self.copies_entry.grid(row=2, column=1, padx=5, pady=5)
-
-                # --- Add & Confirm Buttons ---
-                tk.Button(self, text="Add Card", command=self.add_card).grid(row=3, column=0, padx=5, pady=5)
-                tk.Button(self, text="Confirm", command=self.confirm).grid(row=3, column=1, padx=5, pady=5)
-
-                # --- Display selected cards ---
+                tk.Label(self, text="Selected Cards:").grid(row=2, column=0, padx=5, pady=5)
                 self.selected_listbox = tk.Listbox(self, width=40, height=10)
-                self.selected_listbox.grid(row=4, column=0, columnspan=2, padx=5, pady=5)
+                self.selected_listbox.grid(row=3, column=0, columnspan=2, padx=5, pady=5)
 
                 self.selected_cards = []
+
+                tk.Button(self, text="Add Card", command=self.add_card).grid(row=4, column=0, padx=5, pady=5)
+                tk.Button(self, text="Confirm", command=self.confirm).grid(row=4, column=1, padx=5, pady=5)
 
             def update_list(self, *args):
                 search = self.search_var.get().lower()
                 self.listbox.delete(0, tk.END)
-                for name in self.all_cards:
+                for name in self.available_cards:
                     if search in name.lower():
                         self.listbox.insert(tk.END, name)
 
@@ -711,36 +706,33 @@ class YGOSimulator:
                     tk.messagebox.showerror("Error", "Select a card from the list.")
                     return
                 name = self.listbox.get(sel[0])
-                copies = self.copies_var.get()
-                if copies < 1:
-                    tk.messagebox.showerror("Error", "Must draw at least 1 copy.")
-                    return
-                for _ in range(copies):
-                    self.selected_cards.append(name)
-                    self.selected_listbox.insert(tk.END, name)
+                self.selected_cards.append(name)
+                self.selected_listbox.insert(tk.END, name)
+                # Remove the card from available cards so it can't be added again
+                self.available_cards.remove(name)
+                self.update_list()
 
             def confirm(self):
                 self.destroy()
                 self.callback(self.selected_cards)
 
-        def add_cards(selected_names):
-            # 17 fixed hand slots (left-to-right)
-            hand_y = self.screen_height - CARD_HEIGHT if side == "player" else 0
-            hand_slots = [(padding_x + i*(CARD_WIDTH + SPACING), hand_y) for i in range(17)]
+        def add_cards_to_hand(selected_names):
+            hand_slots = [
+                (padding_x + i*(CARD_WIDTH+SPACING), self.screen_height-CARD_HEIGHT if side=="player" else 0)
+                for i in range(17)
+            ]
 
-            # Track which slots are occupied
-            occupied_indices = []
-            for card in self.cards:
-                if card["owner"] == side and card["location"] == "hand":
-                    x_pos = card["rect"].x
-                    closest_index = min(range(17), key=lambda i: abs(hand_slots[i][0]-x_pos))
-                    occupied_indices.append(closest_index)
+            occupied_indices = [
+                min(range(17), key=lambda i: abs(card["rect"].x - hand_slots[i][0]))
+                for card in self.cards if card["owner"]==side and card["location"]=="hand"
+            ]
 
-            # Add each selected card (allow duplicates)
             for name in selected_names:
+                if name in deck_list:
+                    deck_list.remove(name)
                 free_index = next((i for i in range(17) if i not in occupied_indices), None)
                 if free_index is None:
-                    free_index = max(occupied_indices) + 1 if occupied_indices else 0
+                    free_index = max(occupied_indices)+1 if occupied_indices else 0
                     if free_index >= 17:
                         free_index = 16
                 slot_pos = hand_slots[free_index]
@@ -753,7 +745,7 @@ class YGOSimulator:
 
         root = tk.Tk()
         root.withdraw()
-        draw_window = MultiDrawCardWindow(root, YGOProDeck_Card_Info.keys(), add_cards)
+        draw_window = AddHandCardWindow(root, deck_list, add_cards_to_hand)
         root.wait_window(draw_window)
         root.destroy()
 
@@ -813,6 +805,11 @@ class YGOSimulator:
                             self.drawplay(arg)
                         elif cmd == "drawopp":
                             self.drawopp(arg)
+                        elif cmd == "hand":
+                            arg = 'player'
+                            if command[1] == 'opp':
+                                arg = 'opponent'
+                            self.open_draw_window(arg)
                         elif cmd in ("gy", "graveyard"):
                             # open selection and move selected uids to graveyard
                             self.select_cards_from_game_state(lambda uids: self.move_cards_by_uid(uids, "graveyard"))
