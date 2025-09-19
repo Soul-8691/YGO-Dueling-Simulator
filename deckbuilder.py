@@ -21,7 +21,7 @@ with open("cards_by_format_updated.json", "r", encoding="utf-8") as f:
 def show_card_preview(card_name):
     try:
         card_id = YGOProDeck_Card_Info[card_name]["id"]
-        url = f"https://images.ygoprodeck.com/images/cards/{card_id}.jpg"
+        url = f"https://db.ygoprodeck.com/api/v7/cardimages/{card_id}.jpg"
         resp = requests.get(url)
         resp.raise_for_status()
         img_data = resp.content
@@ -87,6 +87,14 @@ def build_deck_interactively():
     copies_entry = tk.Entry(root, textvariable=copies_var, width=5)
     copies_entry.pack(side="left", padx=5)
 
+    # --- Sort Option (for Format Library) ---
+    sort_var = tk.StringVar(value="Alphabetical")
+    sort_frame = tk.Frame(root)
+    sort_frame.pack(fill="x", pady=5)
+    tk.Label(sort_frame, text="Sort:").pack(side="left")
+    sort_menu = tk.OptionMenu(sort_frame, sort_var, "Alphabetical", "By Count")
+    sort_menu.pack(side="left")
+
     # --- Listbox ---
     listbox_frame = tk.Frame(root)
     listbox_frame.pack(fill="both", expand=True)
@@ -100,7 +108,7 @@ def build_deck_interactively():
     selected_format = None
 
     # ---------- Update Listbox ----------
-    def update_listbox():
+    def update_listbox(*args):
         listbox.delete(0, tk.END)
         if mode_var.get() == "all":
             for name in sorted(YGOProDeck_Card_Info.keys()):
@@ -113,9 +121,14 @@ def build_deck_interactively():
                     listbox.insert(tk.END, fmt)
             elif current_format_stage == "cards" and selected_format:
                 cards_for_format = format_data[selected_format]
-                for name in sorted(cards_for_format.keys()):
+                if sort_var.get() == "Alphabetical":
+                    items = sorted(cards_for_format.keys())
+                else:  # By Count
+                    items = sorted(cards_for_format.keys(), key=lambda x: cards_for_format[x].get("count", 1), reverse=True)
+                for name in items:
                     listbox.insert(tk.END, name)
 
+    sort_var.trace_add("write", update_listbox)
     update_listbox()
 
     # ---------- Deck Display ----------
