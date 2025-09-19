@@ -176,6 +176,8 @@ class YGOSimulator:
         self.opponent_deck = self._expand_deck(opponent_deck_data["main"])
         self.opponent_extra = self._expand_deck(opponent_deck_data["extra"])
         self.opponent_side = self._expand_deck(opponent_deck_data["side"])
+        self.player_deck_pos = (self.screen_width-CARD_WIDTH-14, self.screen_height//2 - CARD_HEIGHT//2 + CARD_HEIGHT*2 + gap_y*2)
+        self.opponent_deck_pos = (padding_x-CARD_WIDTH-gap_x, self.screen_height//2 - CARD_HEIGHT//2 - CARD_HEIGHT*2 - gap_y*2)
 
         # Hand slot positions (17 slots)
         self.player_hand_slots = [(i*(CARD_WIDTH + SPACING),
@@ -228,6 +230,10 @@ class YGOSimulator:
         # Load mat
         self.mat_surface = pygame.image.load("mat.jpg").convert()
         self.mat_surface = pygame.transform.scale(self.mat_surface, (self.screen_width, self.screen_height))
+
+        # Load card back
+        self.card_back_surface = pygame.image.load("card_back.png").convert_alpha()
+        self.card_back_surface = pygame.transform.scale(self.card_back_surface, (CARD_WIDTH, CARD_HEIGHT))
 
         # Zones
         self.zones = self.create_zones()
@@ -562,6 +568,18 @@ class YGOSimulator:
                 if zone.collidepoint(pygame.mouse.get_pos()):
                     pygame.draw.rect(self.screen, (255,255,0), zone, 3)
 
+        # Draw decks
+        # Only show top 5 cards stacked slightly offset
+        for i in range(min(5, len(self.player_deck))):
+            offset = i * 0.5
+            pos = (self.player_deck_pos[0] + offset, self.player_deck_pos[1] - offset)
+            self.screen.blit(self.card_back_surface, pos)
+
+        for i in range(min(5, len(self.opponent_deck))):
+            offset = i * 0.5
+            pos = (self.opponent_deck_pos[0] + offset, self.opponent_deck_pos[1] + offset)
+            self.screen.blit(self.card_back_surface, pos)
+
         # Draw cards (non-dragged)
         for card in self.cards:
             if card.get("surface") is None or card.get("rect") is None:
@@ -828,6 +846,14 @@ class YGOSimulator:
                             self.drag_offset = (event.pos[0] - card["rect"].x, event.pos[1] - card["rect"].y)
                             self.dragged_card_pos = (card["rect"].x, card["rect"].y)
                             break
+                    mx, my = event.pos
+                    px, py = self.player_deck_pos
+                    if px <= mx <= px + CARD_WIDTH and py <= my <= py + CARD_HEIGHT and self.player_deck:
+                        self.drawplay(1)
+
+                    ox, oy = self.opponent_deck_pos
+                    if ox <= mx <= ox + CARD_WIDTH and oy <= my <= oy + CARD_HEIGHT and self.opponent_deck:
+                        self.drawopp(1)
 
                 elif event.type == pygame.MOUSEBUTTONUP and event.button == 1:
                     if self.dragged_card_uid is not None:
