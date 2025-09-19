@@ -22,7 +22,7 @@ def show_card_preview(card_name):
     """Show a popup with a card image from ygoprodeck."""
     try:
         card_id = YGOProDeck_Card_Info[card_name]["id"]
-        url = f"https://db.ygoprodeck.com/api/v7/cardimages/{card_id}.jpg"
+        url = f"https://images.ygoprodeck.com/images/cards/{card_id}.jpg"
         resp = requests.get(url)
         resp.raise_for_status()
         pil_img = Image.open(BytesIO(resp.content))
