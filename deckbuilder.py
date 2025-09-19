@@ -138,14 +138,26 @@ def build_deck_interactively():
     tk.Button(top_frame, text="Load Deck", command=load_deck).pack(side="left", padx=5)
     tk.Button(top_frame, text="Save Deck", command=save_deck).pack(side="left", padx=5)
 
-    # --- Search bar ---
-    search_var = tk.StringVar()
-    search_var.set("")
+    # --- Search bar with placeholder ---
+    search_var = tk.StringVar(value="")
     card_names = sorted(YGOProDeck_Card_Info.keys())
 
     search_entry = tk.Entry(root, textvariable=search_var)
     search_entry.pack(fill="x", padx=5, pady=5)
-    search_entry.insert(0, "Search cards...")
+
+    placeholder = "Search cards..."
+    search_var.set("")  # start empty
+
+    def on_entry_focus_in(event):
+        if search_var.get() == placeholder:
+            search_var.set("")
+
+    def on_entry_focus_out(event):
+        if not search_var.get():
+            search_var.set("")
+
+    search_entry.bind("<FocusIn>", on_entry_focus_in)
+    search_entry.bind("<FocusOut>", on_entry_focus_out)
 
     # --- Listbox ---
     listbox_frame = tk.Frame(root)
@@ -162,10 +174,12 @@ def build_deck_interactively():
         term = search_var.get().lower()
         listbox.delete(0, tk.END)
         for name in card_names:
-            if term in name.lower():
+            if term in name.lower() or term == "":
                 listbox.insert(tk.END, name)
 
     search_var.trace_add("write", update_list)
+
+    # Initialize list with all cards
     update_list()
 
     # --- Copies Entry ---
