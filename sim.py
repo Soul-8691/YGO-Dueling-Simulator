@@ -333,23 +333,28 @@ class YGOSimulator:
         return [(HAND_START_X + i*(CARD_WIDTH + SPACING), y) for i in range(MAX_HAND)]
 
     def drawplay(self, count=1):
-        for _ in range(count):
-            if not self.player_deck:
-                print("Player has no cards left to draw!")
-                return
-            card_name = self.player_deck.pop(0)  # remove top card
+        # Clamp count to available cards
+        actual_count = min(count, len(self.player_deck))
+        if actual_count < count:
+            print(f"Player tried to draw {count}, but only {actual_count} available.")
+
+        for _ in range(actual_count):
+            card_name = self.player_deck.pop(0)
             inst = self._create_card_instance(card_name, owner="player", location="hand")
             self.cards.append(inst)
+
         self.load_cards()
 
     def drawopp(self, count=1):
-        for _ in range(count):
-            if not self.opponent_deck:
-                print("Opponent has no cards left to draw!")
-                return
+        actual_count = min(count, len(self.opponent_deck))
+        if actual_count < count:
+            print(f"Opponent tried to draw {count}, but only {actual_count} available.")
+
+        for _ in range(actual_count):
             card_name = self.opponent_deck.pop(0)
             inst = self._create_card_instance(card_name, owner="opponent", location="hand")
             self.cards.append(inst)
+
         self.load_cards()
 
     def add_card_to_hand(self, card_name, owner):
