@@ -44,6 +44,27 @@ def build_deck_interactively():
     root.title("Deck Builder")
     root.geometry("750x600")
 
+    # --- Format sort option ---
+    sort_formats_var = tk.StringVar(value="Alphabetical")
+    sort_formats_var.trace_add("write", lambda *args: populate_format_list())
+
+    sort_frame = tk.Frame(root)
+    sort_frame.pack(fill="x", padx=5, pady=2)
+    tk.Label(sort_frame, text="Sort Formats:").pack(side="left")
+    tk.OptionMenu(sort_frame, sort_formats_var, "Alphabetical", "By Date").pack(side="left")
+
+    def populate_format_list():
+        listbox.delete(0, tk.END)
+        formats = list(format_data.keys())
+        if sort_formats_var.get() == "Alphabetical":
+            formats.sort()
+        else:  # By Date
+            # Assuming each format has a 'date' key (ISO: YYYY-MM-DD)
+            formats.sort(key=lambda f: format_data[f].get("date", "9999-12-31"))
+
+        for fmt in formats:
+            listbox.insert(tk.END, fmt)
+
     # --- Top Buttons ---
     def load_deck():
         path = filedialog.askopenfilename(initialdir=DECKS_DIR, title="Select deck JSON",
@@ -121,12 +142,15 @@ def build_deck_interactively():
                     listbox.insert(tk.END, fmt)
             elif current_format_stage == "cards" and selected_format:
                 cards_for_format = format_data[selected_format]
+                # Sort
                 if sort_var.get() == "Alphabetical":
                     items = sorted(cards_for_format.keys())
-                else:  # By Count
+                else:  # By Count descending
                     items = sorted(cards_for_format.keys(), key=lambda x: cards_for_format[x].get("count", 1), reverse=True)
+                # Insert with counts
                 for name in items:
-                    listbox.insert(tk.END, name)
+                    count = cards_for_format[name].get("count", 1)
+                    listbox.insert(tk.END, f"{name} ({count})")
 
     sort_var.trace_add("write", update_listbox)
     update_listbox()
@@ -153,7 +177,10 @@ def build_deck_interactively():
             messagebox.showwarning("Invalid Input", "Copies must be a positive integer.")
             return
 
-        name = listbox.get(selection[0])
+        name = listbox.get(selection[0]).rsplit(" (", 1)[0]  # remove " (count)"
+        if name in YGOProDeck_Card_Info:
+            deck[name] = deck.get(name, 0) + copies
+            update_deck_display()
         # prevent formats from being added as cards
         if mode_var.get() == "format" and current_format_stage == "format_select":
             return
