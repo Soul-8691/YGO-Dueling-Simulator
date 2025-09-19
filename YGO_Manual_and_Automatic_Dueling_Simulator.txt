@@ -1,2 +1,1 @@
-Maximize deckbuilder by default
 field play/opp commands

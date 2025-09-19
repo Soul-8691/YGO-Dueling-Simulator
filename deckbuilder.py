@@ -43,6 +43,7 @@ class DeckBuilder:
         self.root = root
         self.root.title("Deck Builder")
         self.root.geometry("750x600")
+        self.root.state("zoomed")  # maximize window on start (Windows)
 
         # Three deck sections
         self.main_deck = {}
