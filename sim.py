@@ -362,24 +362,6 @@ class YGOSimulator:
 
         self.load_cards()
 
-    def add_card_to_hand(self, card_name, owner):
-        """Add a card to the first available hand slot (17 slots)."""
-        hand_slots = self.player_hand_slots if owner=="player" else self.opponent_hand_slots
-
-        # Find which slots are occupied
-        occupied_slots = [c["rect"].topleft for c in self.cards
-                        if c["location"]=="hand" and c["owner"]==owner]
-
-        # Pick first free slot
-        slot_pos = next((pos for pos in hand_slots if pos not in occupied_slots), hand_slots[len(occupied_slots) % 17])
-
-        # Create card instance
-        inst = self._create_card_instance(card_name, owner=owner, location="hand")
-        inst["rect"].topleft = slot_pos
-        self.cards.append(inst)
-
-        self.load_cards()
-
     # -----------------------------
     # Helper: create a unique card instance (fetch images once)
     # -----------------------------
@@ -516,9 +498,6 @@ class YGOSimulator:
                         rect.topleft = (zone.x, zone.y)
                         card["placed"] = True
                         break
-
-                # Assign rect so hover/collision logic works
-                card["rect"] = rect
             elif card["location"] == "graveyard":
                 rect = surface.get_rect(
                     topleft=(self.graveyard_zones[0].x, self.graveyard_zones[0].y)
@@ -824,11 +803,6 @@ class YGOSimulator:
             zones = self.player_field_zones if side == "player" else self.opponent_field_zones
             zone_index = slot_num - 1  # slot_num 1-10 -> index 0-9
 
-            # Check if the slot is already occupied
-            if any(card["owner"] == side and card["location"] == "field" and card.get("field_slot") == slot_num for card in self.cards):
-                tk.messagebox.showerror("Error", f"Slot {slot_num} is already occupied.")
-                return
-
             # Find the card in the deck
             for idx, card in enumerate(deck_cards):
                 if card == name:
@@ -840,12 +814,12 @@ class YGOSimulator:
 
             # Create the card instance
             inst = self._create_card_instance(deck_card, owner=side, location="field")
-            inst["field_slot"] = slot_num
 
             # Set the card rect to the correct field position
             target_zone = zones[zone_index]
-            print(zone_index)
             inst["rect"] = pygame.Rect(target_zone.x, target_zone.y, CARD_WIDTH, CARD_HEIGHT)
+            inst["rect"].topleft = (target_zone.x, target_zone.y)
+            inst["placed"] = True
 
             self.cards.append(inst)
             self.load_cards()  # updates hover and display
