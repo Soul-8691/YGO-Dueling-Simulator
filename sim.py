@@ -325,21 +325,17 @@ class YGOSimulator:
         self.add_card_to_hand(card_name, "opponent")
 
     def add_card_to_hand(self, card_name, owner):
-        """Add a card to the first available hand slot (17 slots left-to-right)."""
-        # Determine hand slots
-        hand_positions = [(padding_x + i*(CARD_WIDTH + SPACING),
-                        self.screen_height - CARD_HEIGHT if owner=="player" else 0)
-                        for i in range(17)]
+        """Add a card to the first available hand slot (17 slots)."""
+        hand_slots = self.player_hand_slots if owner=="player" else self.opponent_hand_slots
 
-        # Find which slots are already occupied
-        occupied_slots = [card["rect"].topleft for card in self.cards
-                        if card["location"]=="hand" and card["owner"]==owner]
+        # Find which slots are occupied
+        occupied_slots = [c["rect"].topleft for c in self.cards
+                        if c["location"]=="hand" and c["owner"]==owner]
 
-        # Find first free slot
-        slot_pos = next((pos for pos in hand_positions if pos not in occupied_slots),
-                        hand_positions[len(occupied_slots) % 17])
+        # Pick first free slot
+        slot_pos = next((pos for pos in hand_slots if pos not in occupied_slots), hand_slots[len(occupied_slots) % 17])
 
-        # Create the card instance
+        # Create card instance
         inst = self._create_card_instance(card_name, owner=owner, location="hand")
         inst["rect"].topleft = slot_pos
         self.cards.append(inst)
@@ -467,11 +463,11 @@ class YGOSimulator:
                 else:
                     rect = surface.get_rect(topleft=(opponent_x, opponent_y))
                     opponent_x += CARD_WIDTH + SPACING
-            elif card["location"] == "field":
-                # Snap to first free field zone
-                for zone in field_positions:
+            elif card["location"]=="field":
+                for zone in self.zones:
                     if not any(c["rect"].colliderect(zone) for c in self.cards if c["location"]=="field"):
-                        rect = surface.get_rect(topleft=(zone.x, zone.y))
+                        card["rect"].topleft = (zone.x, zone.y)
+                        card["placed"] = True
                         break
             elif card["location"] == "graveyard":
                 rect = surface.get_rect(
@@ -498,6 +494,13 @@ class YGOSimulator:
             self.card_surfaces.append(surface)
             self.card_preview_surfaces.append(preview)
             self.card_rects.append(rect)
+        
+        # Reposition hand cards in order
+        for owner in ("player", "opponent"):
+            hand_slots = self.player_hand_slots if owner=="player" else self.opponent_hand_slots
+            hand_cards = [c for c in self.cards if c["owner"]==owner and c["location"]=="hand"]
+            for i, card in enumerate(hand_cards):
+                card["rect"].topleft = hand_slots[i]
 
     # -----------------------------
     # Draw everything
@@ -795,17 +798,19 @@ class YGOSimulator:
 
                         # Snap to hand slots if dropped near them
                         if not snapped:
-                            if card["owner"] == "player":
-                                slots = self.player_hand_slots
-                            else:
-                                slots = self.opponent_hand_slots
+                            slots = self.player_hand_slots if card["owner"]=="player" else self.opponent_hand_slots
 
-                            # Find nearest slot (distance by center of rect)
-                            nearest_slot = min(slots, key=lambda s: (card["rect"].centerx - (s[0]+CARD_WIDTH//2))**2 +
-                                                            (card["rect"].centery - (s[1]+CARD_HEIGHT//2))**2)
-                            card["rect"].topleft = nearest_slot
-                            card["location"] = "hand"
-                            snapped = True
+                            # Only pick free slots
+                            occupied = [c["rect"].topleft for c in self.cards if c["location"]=="hand" and c["owner"]==card["owner"] and c["uid"]!=card["uid"]]
+                            free_slots = [s for s in slots if s not in occupied]
+                            
+                            if free_slots:
+                                # Snap to the nearest free slot
+                                nearest_slot = min(free_slots, key=lambda s: (card["rect"].centerx - (s[0]+CARD_WIDTH//2))**2 +
+                                                                        (card["rect"].centery - (s[1]+CARD_HEIGHT//2))**2)
+                                card["rect"].topleft = nearest_slot
+                                card["location"] = "hand"
+                                snapped = True
 
                         # Snap to field
                         for zone in self.zones:
