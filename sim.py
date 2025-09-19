@@ -167,6 +167,12 @@ class YGOSimulator:
         pygame.display.set_caption("Yu-Gi-Oh! Simulator")
         self.screen_width, self.screen_height = self.screen.get_size()
 
+        # Hand slot positions (17 slots)
+        self.player_hand_slots = [(i*(CARD_WIDTH + SPACING),
+                                self.screen_height - CARD_HEIGHT) for i in range(17)]
+        self.opponent_hand_slots = [(i*(CARD_WIDTH + SPACING),
+                                    0) for i in range(17)]
+
         self.next_uid = 0
 
         # Cards: dicts with name, owner, location
@@ -499,6 +505,13 @@ class YGOSimulator:
     def draw_field(self, hover_index=None):
         self.screen.blit(self.mat_surface, (0,0))
 
+        # Draw player hand slots
+        for pos in self.player_hand_slots:
+            pygame.draw.rect(self.screen, (50,50,50), (*pos, CARD_WIDTH, CARD_HEIGHT), 2)
+        # Draw opponent hand slots
+        for pos in self.opponent_hand_slots:
+            pygame.draw.rect(self.screen, (50,50,50), (*pos, CARD_WIDTH, CARD_HEIGHT), 2)
+
         # Draw zones
         for zone in self.zones:
             pygame.draw.rect(self.screen, (100,100,100), zone, 2)
@@ -779,6 +792,20 @@ class YGOSimulator:
                     if self.dragged_card_uid is not None:
                         card = next(c for c in self.cards if c["uid"] == self.dragged_card_uid)
                         snapped = False
+
+                        # Snap to hand slots if dropped near them
+                        if not snapped:
+                            if card["owner"] == "player":
+                                slots = self.player_hand_slots
+                            else:
+                                slots = self.opponent_hand_slots
+
+                            # Find nearest slot (distance by center of rect)
+                            nearest_slot = min(slots, key=lambda s: (card["rect"].centerx - (s[0]+CARD_WIDTH//2))**2 +
+                                                            (card["rect"].centery - (s[1]+CARD_HEIGHT//2))**2)
+                            card["rect"].topleft = nearest_slot
+                            card["location"] = "hand"
+                            snapped = True
 
                         # Snap to field
                         for zone in self.zones:
