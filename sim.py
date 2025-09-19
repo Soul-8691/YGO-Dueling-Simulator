@@ -166,7 +166,6 @@ class YGOSimulator:
         self.screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
         pygame.display.set_caption("Yu-Gi-Oh! Simulator")
         self.screen_width, self.screen_height = self.screen.get_size()
-
         
         # Expand the deck dicts into flat lists for easier draw/remove logic
         self.player_deck = self._expand_deck(player_deck_data["main"])
@@ -502,12 +501,24 @@ class YGOSimulator:
                 else:
                     rect = surface.get_rect(topleft=(opponent_x, opponent_y))
                     opponent_x += CARD_WIDTH + SPACING
-            elif card["location"]=="field":
-                for zone in self.zones:
-                    if not any(c["rect"].colliderect(zone) for c in self.cards if c["location"]=="field"):
-                        card["rect"].topleft = (zone.x, zone.y)
+            elif card["location"] == "field":
+                rect = pygame.Rect(0, 0, CARD_WIDTH, CARD_HEIGHT)
+                
+                # Select which zones to use based on owner
+                if card["owner"] == "player":
+                    zones_to_check = self.player_field_zones  # top/bottom depends on your layout
+                else:
+                    zones_to_check = self.opponent_field_zones
+
+                # Iterate through the zones to find a free slot
+                for zone in zones_to_check:
+                    if not any(c["rect"].colliderect(zone) for c in self.cards if c["location"]=="field" and c["owner"]==card["owner"]):
+                        rect.topleft = (zone.x, zone.y)
                         card["placed"] = True
                         break
+
+                # Assign rect so hover/collision logic works
+                card["rect"] = rect
             elif card["location"] == "graveyard":
                 rect = surface.get_rect(
                     topleft=(self.graveyard_zones[0].x, self.graveyard_zones[0].y)
@@ -521,6 +532,9 @@ class YGOSimulator:
                     (self.banish_zones[1].x, self.banish_zones[1].y)
                 )
                 # Do NOT rotate here; rotation already handled on move
+            else:
+                # assign a default rect
+                rect = pygame.Rect(0, 0, CARD_WIDTH, CARD_HEIGHT)
 
             card["rect"] = rect
             card["surface"] = surface
@@ -749,6 +763,102 @@ class YGOSimulator:
         root.wait_window(draw_window)
         root.destroy()
 
+    def open_field_window(self, side):
+        # --- Select the correct deck ---
+        deck_cards = self.player_deck if side == "player" else self.opponent_deck
+        if not deck_cards:
+            tk.messagebox.showinfo("Info", f"No cards in {side}'s deck to place.")
+            return
+
+        class FieldPlacementWindow(tk.Toplevel):
+            def __init__(self, master, available_cards, callback):
+                super().__init__(master)
+                self.title("Place Card on Field")
+                self.callback = callback
+                self.available_cards = sorted(available_cards)
+
+                tk.Label(self, text="Search Card:").grid(row=0, column=0, padx=5, pady=5)
+                self.search_var = tk.StringVar()
+                self.search_var.trace_add("write", self.update_list)
+                self.search_entry = tk.Entry(self, textvariable=self.search_var)
+                self.search_entry.grid(row=0, column=1, padx=5, pady=5)
+
+                self.listbox = tk.Listbox(self, selectmode=tk.SINGLE, width=40, height=15)
+                self.listbox.grid(row=1, column=0, columnspan=2, padx=5, pady=5)
+                for name in self.available_cards:
+                    self.listbox.insert(tk.END, name)
+
+                tk.Label(self, text="Field Slot (1-10):").grid(row=2, column=0, padx=5, pady=5)
+                self.slot_var = tk.IntVar(value=1)
+                self.slot_entry = tk.Entry(self, textvariable=self.slot_var)
+                self.slot_entry.grid(row=2, column=1, padx=5, pady=5)
+
+                tk.Button(self, text="Confirm", command=self.confirm).grid(row=3, column=0, columnspan=2, padx=5, pady=5)
+
+            def update_list(self, *args):
+                search = self.search_var.get().lower()
+                self.listbox.delete(0, tk.END)
+                for name in self.available_cards:
+                    if search in name.lower():
+                        self.listbox.insert(tk.END, name)
+
+            def confirm(self):
+                sel = self.listbox.curselection()
+                if not sel:
+                    tk.messagebox.showerror("Error", "Select a card.")
+                    return
+                name = self.listbox.get(sel[0])
+                slot_num = self.slot_var.get()
+                if not (1 <= slot_num <= 10):
+                    tk.messagebox.showerror("Error", "Slot must be 1-10.")
+                    return
+                self.available_cards.remove(name)  # prevent duplicates
+                self.callback(name, slot_num, side)
+                self.destroy()
+
+        # -----------------------------
+        # Callback to place the card on the field
+        # -----------------------------
+        def place_card_callback(name, slot_num, side):
+            # Determine the correct zones array
+            zones = self.player_field_zones if side == "player" else self.opponent_field_zones
+            zone_index = slot_num - 1  # slot_num 1-10 -> index 0-9
+
+            # Check if the slot is already occupied
+            if any(card["owner"] == side and card["location"] == "field" and card.get("field_slot") == slot_num for card in self.cards):
+                tk.messagebox.showerror("Error", f"Slot {slot_num} is already occupied.")
+                return
+
+            # Find the card in the deck
+            for idx, card in enumerate(deck_cards):
+                if card == name:
+                    deck_card = deck_cards.pop(idx)
+                    break
+            else:
+                tk.messagebox.showerror("Error", f"Card {name} not found in deck.")
+                return
+
+            # Create the card instance
+            inst = self._create_card_instance(deck_card, owner=side, location="field")
+            inst["field_slot"] = slot_num
+
+            # Set the card rect to the correct field position
+            target_zone = zones[zone_index]
+            print(zone_index)
+            inst["rect"] = pygame.Rect(target_zone.x, target_zone.y, CARD_WIDTH, CARD_HEIGHT)
+
+            self.cards.append(inst)
+            self.load_cards()  # updates hover and display
+
+        # -----------------------------
+        # Launch Tk window
+        # -----------------------------
+        root = tk.Tk()
+        root.withdraw()
+        win = FieldPlacementWindow(root, deck_cards, place_card_callback)
+        root.wait_window(win)
+        root.destroy()
+
     # -----------------------------
     # Move cards by uid to a new location
     # -----------------------------
@@ -810,6 +920,11 @@ class YGOSimulator:
                             if command[1] == 'opp':
                                 arg = 'opponent'
                             self.open_draw_window(arg)
+                        elif cmd == "field":
+                            arg = 'player'
+                            if command[1] == 'opp':
+                                arg = 'opponent'
+                            self.open_field_window(arg)
                         elif cmd in ("gy", "graveyard"):
                             # open selection and move selected uids to graveyard
                             self.select_cards_from_game_state(lambda uids: self.move_cards_by_uid(uids, "graveyard"))
