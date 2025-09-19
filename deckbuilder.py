@@ -17,15 +17,15 @@ YGOProDeck_Card_Info = {c["name"]: c for c in data["data"]}
 with open("cards_by_format_updated.json", "r", encoding="utf-8") as f:
     format_data = json.load(f)
 
-# ---------- Helper: Show Card Image ----------
+
 def show_card_preview(card_name):
+    """Show a popup with a card image from ygoprodeck."""
     try:
         card_id = YGOProDeck_Card_Info[card_name]["id"]
         url = f"https://db.ygoprodeck.com/api/v7/cardimages/{card_id}.jpg"
         resp = requests.get(url)
         resp.raise_for_status()
-        img_data = resp.content
-        pil_img = Image.open(BytesIO(img_data))
+        pil_img = Image.open(BytesIO(resp.content))
         pil_img.thumbnail((400, 600))
         preview_win = tk.Toplevel()
         preview_win.title(card_name)
@@ -37,275 +37,329 @@ def show_card_preview(card_name):
     except Exception as e:
         messagebox.showerror("Error", f"Cannot load card image for {card_name}.\n{e}")
 
-# ---------- Deck Builder ----------
-def build_deck_interactively():
-    deck = {}
-    root = tk.Tk()
-    root.title("Deck Builder")
-    root.geometry("750x600")
 
-    # --- Format sort option ---
-    sort_formats_var = tk.StringVar(value="Alphabetical")
-    sort_formats_var.trace_add("write", lambda *args: populate_format_list())
+class DeckBuilder:
+    def __init__(self, root):
+        self.root = root
+        self.root.title("Deck Builder")
+        self.root.geometry("750x600")
 
-    # --- Sort Option (for Format Library) ---
-    sort_var = tk.StringVar(value="Alphabetical")
+        # Three deck sections
+        self.main_deck = {}
+        self.extra_deck = {}
+        self.side_deck = {}
+        self.current_section = tk.StringVar(value="main")
 
-    # --- Combined Sort Controls ---
-    sort_frame = tk.Frame(root)
-    sort_frame.pack(fill="x", padx=5, pady=2)
+        # Format / sort options
+        self.sort_formats_var = tk.StringVar(value="Alphabetical")
+        self.sort_var = tk.StringVar(value="Alphabetical")
 
-    # Sort Formats
-    tk.Label(sort_frame, text="Sort Formats:").pack(side="left", padx=5)
-    tk.OptionMenu(sort_frame, sort_formats_var, "Alphabetical", "By Date").pack(side="left", padx=5)
+        self.sort_formats_var.trace_add("write", lambda *args: self.populate_format_list())
 
-    # Sort Cards
-    tk.Label(sort_frame, text="Sort Cards:").pack(side="left", padx=5)
-    tk.OptionMenu(sort_frame, sort_var, "Alphabetical", "By Level", "By Attribute", "By ATK", "By DEF", "By Race", "By Type", "By Konami ID", "By Usage Count").pack(side="left", padx=5)
+        # Format library navigation
+        self.current_format_stage = "format_select"
+        self.selected_format = None
 
-    def populate_format_list():
-        listbox.delete(0, tk.END)
+        # Copies input
+        self.copies_var = tk.StringVar(value="1")
+
+        # Build UI
+        self._build_ui()
+    
+    def populate_format_list(self):
+        self.listbox.delete(0, tk.END)
         formats = list(format_data.keys())
-        if sort_formats_var.get() == "Alphabetical":
+        if self.sort_formats_var.get() == "Alphabetical":
             formats.sort()
         else:  # By Date
             # Assuming each format has a 'date' key (ISO: YYYY-MM-DD)
             formats.sort(key=lambda f: format_data[f].get("date", "9999-12-31"))
 
         for fmt in formats:
-            listbox.insert(tk.END, fmt)
+            self.listbox.insert(tk.END, fmt)
 
-    # --- Top Buttons ---
-    def load_deck():
-        path = filedialog.askopenfilename(initialdir=DECKS_DIR, title="Select deck JSON",
-                                          filetypes=[("JSON Files", "*.json")])
-        if path:
-            with open(path, "r", encoding="utf-8") as f:
-                loaded_deck = json.load(f)
-            deck.clear()
-            deck.update(loaded_deck)
-            update_deck_display()
+    # ------------------ UI ------------------
+    def _build_ui(self):
+        # Section selector
+        section_frame = tk.Frame(self.root)
+        section_frame.pack(fill="x", padx=5, pady=2)
+        tk.Label(section_frame, text="Editing:").pack(side="left")
+        tk.OptionMenu(section_frame, self.current_section, "main", "extra", "side").pack(side="left")
 
-    def save_deck():
+        # Sort controls
+        sort_frame = tk.Frame(self.root)
+        sort_frame.pack(fill="x", padx=5, pady=2)
+        tk.Label(sort_frame, text="Sort Formats:").pack(side="left", padx=5)
+        tk.OptionMenu(sort_frame, self.sort_formats_var, "Alphabetical", "By Date").pack(side="left", padx=5)
+        tk.Label(sort_frame, text="Sort Cards:").pack(side="left", padx=5)
+        tk.OptionMenu(
+            sort_frame,
+            self.sort_var,
+            "Alphabetical", "By Level", "By Attribute", "By ATK",
+            "By DEF", "By Race", "By Type", "By Konami ID", "By Usage Count"
+        ).pack(side="left", padx=5)
+
+        # Top buttons
+        top_frame = tk.Frame(self.root)
+        top_frame.pack(fill="x", padx=5, pady=5)
+        tk.Button(top_frame, text="Load Deck", command=self.load_deck).pack(side="left", padx=5)
+        tk.Button(top_frame, text="Save Deck", command=self.save_deck).pack(side="left", padx=5)
+
+        # Mode
+        mode_frame = tk.Frame(self.root)
+        mode_frame.pack(fill="x", pady=5)
+        self.mode_var = tk.StringVar(value="all")
+        tk.Radiobutton(mode_frame, text="All Cards", variable=self.mode_var, value="all", command=self.update_listbox).pack(side="left")
+        tk.Radiobutton(mode_frame, text="Format Library", variable=self.mode_var, value="format", command=self.update_listbox).pack(side="left")
+
+        # Copies
+        copies_frame = tk.Frame(self.root)
+        copies_frame.pack(fill="x", pady=2)
+        tk.Label(copies_frame, text="Copies to add:").pack(side="left", padx=5)
+        tk.Entry(copies_frame, textvariable=self.copies_var, width=5).pack(side="left")
+
+        # Listbox
+        listbox_frame = tk.Frame(self.root)
+        listbox_frame.pack(fill="both", expand=True)
+        scrollbar = tk.Scrollbar(listbox_frame)
+        scrollbar.pack(side="right", fill="y")
+        self.listbox = tk.Listbox(listbox_frame, selectmode=tk.SINGLE, yscrollcommand=scrollbar.set)
+        self.listbox.pack(fill="both", expand=True)
+        scrollbar.config(command=self.listbox.yview)
+
+        # Deck display
+        self.deck_text = tk.Text(self.root, height=10)
+        self.deck_text.pack(fill="both", expand=True, padx=5, pady=5)
+
+        # Buttons
+        control_frame = tk.Frame(self.root)
+        control_frame.pack(pady=5)
+        tk.Button(control_frame, text="Add Selected", command=self.add_selected).pack(side="left", padx=5)
+        tk.Button(control_frame, text="Remove Selected", command=self.remove_selected).pack(side="left", padx=5)
+
+        # Finish
+        tk.Button(self.root, text="Finish", command=self.finish).pack(pady=5)
+
+        # Bindings
+        self.listbox.bind("<Return>", self.on_enter)
+        self.listbox.bind("<Double-1>", self.on_enter)
+        self.root.bind("<BackSpace>", self.on_backspace)
+
+        # Watchers
+        self.sort_var.trace_add("write", self.update_listbox)
+        self.sort_formats_var.trace_add("write", lambda *a: self.update_listbox())
+
+        self.update_listbox()
+
+    # ------------------ Deck Save/Load ------------------
+    def save_deck(self):
         deck_name = simpledialog.askstring("Save Deck", "Enter deck name:")
-        if deck_name:
-            path = os.path.join(DECKS_DIR, f"{deck_name}.json")
-            with open(path, "w", encoding="utf-8") as f:
-                json.dump(deck, f, ensure_ascii=False, indent=2)
-            messagebox.showinfo("Deck Saved", f"Deck saved to {path}")
+        if not deck_name:
+            return
+        path = os.path.join(DECKS_DIR, f"{deck_name}.json")
+        deck_data = {
+            "main": self.main_deck,
+            "extra": self.extra_deck,
+            "side": self.side_deck
+        }
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(deck_data, f, ensure_ascii=False, indent=2)
+        messagebox.showinfo("Deck Saved", f"Deck saved to {path}")
 
-    top_frame = tk.Frame(root)
-    top_frame.pack(fill="x", padx=5, pady=5)
-    tk.Button(top_frame, text="Load Deck", command=load_deck).pack(side="left", padx=5)
-    tk.Button(top_frame, text="Save Deck", command=save_deck).pack(side="left", padx=5)
+    def load_deck(self):
+        path = filedialog.askopenfilename(initialdir=DECKS_DIR, title="Select deck JSON", filetypes=[("JSON Files", "*.json")])
+        if not path:
+            return
+        with open(path, "r", encoding="utf-8") as f:
+            deck_data = json.load(f)
+        self.main_deck = deck_data.get("main", {})
+        self.extra_deck = deck_data.get("extra", {})
+        self.side_deck = deck_data.get("side", {})
+        self.update_deck_display()
 
-    # --- Mode selection ---
-    mode_frame = tk.Frame(root)
-    mode_frame.pack(fill="x", pady=5)
-    mode_var = tk.StringVar(value="all")
-
-    def switch_mode():
-        nonlocal current_format_stage
-        current_format_stage = "format_select"
-        update_listbox()
-
-    tk.Radiobutton(mode_frame, text="All Cards", variable=mode_var, value="all", command=switch_mode).pack(side="left")
-    tk.Radiobutton(mode_frame, text="Format Library", variable=mode_var, value="format", command=switch_mode).pack(side="left")
-
-    # --- Copies Entry ---
-    copies_var = tk.StringVar(value="1")
-    tk.Label(root, text="Copies to add").pack(side="left", padx=5)
-    copies_entry = tk.Entry(root, textvariable=copies_var, width=5)
-    copies_entry.pack(side="left", padx=5)
-
-    # --- Listbox ---
-    listbox_frame = tk.Frame(root)
-    listbox_frame.pack(fill="both", expand=True)
-    scrollbar = tk.Scrollbar(listbox_frame)
-    scrollbar.pack(side="right", fill="y")
-    listbox = tk.Listbox(listbox_frame, selectmode=tk.SINGLE, yscrollcommand=scrollbar.set)
-    listbox.pack(fill="both", expand=True)
-    scrollbar.config(command=listbox.yview)
-
-    current_format_stage = "format_select"  # tracks Format Library navigation
-    selected_format = None
-
-    # ---------- Update Listbox ----------
-    def update_listbox(*args):
-        listbox.delete(0, tk.END)
-        if mode_var.get() == "all":
-            if sort_var.get() == "By Level":
-                items = sorted(YGOProDeck_Card_Info.keys(), key=lambda x: YGOProDeck_Card_Info[x].get("level", 0) if YGOProDeck_Card_Info[x].get("level", 0) is not None else 0, reverse=True)
-                for name in items:
-                    level = YGOProDeck_Card_Info[name].get("level", 0)
-                    listbox.insert(tk.END, f"{name} ({level})")
-            elif sort_var.get() == "By Attribute":
-                items = sorted(YGOProDeck_Card_Info.keys(), key=lambda x: YGOProDeck_Card_Info[x].get("attribute", "None"))
-                for name in items:
-                    attribute = YGOProDeck_Card_Info[name].get("attribute", "None")
-                    listbox.insert(tk.END, f"{name} ({attribute})")
-            elif sort_var.get() == "By ATK":
-                items = sorted(YGOProDeck_Card_Info.keys(), key=lambda x: YGOProDeck_Card_Info[x].get("atk", 0), reverse=True)
-                for name in items:
-                    atk = YGOProDeck_Card_Info[name].get("atk", 0)
-                    listbox.insert(tk.END, f"{name} ({atk})")
-            elif sort_var.get() == "By DEF":
-                items = sorted(YGOProDeck_Card_Info.keys(), key=lambda x: YGOProDeck_Card_Info[x].get("def", 0) if YGOProDeck_Card_Info[x].get("def", 0) is not None else 0, reverse=True)
-                for name in items:
-                    defn = YGOProDeck_Card_Info[name].get("def", 0)
-                    listbox.insert(tk.END, f"{name} ({defn})")
-            elif sort_var.get() == "By Race":
-                items = sorted(YGOProDeck_Card_Info.keys(), key=lambda x: YGOProDeck_Card_Info[x].get("race", "None"))
-                for name in items:
-                    race = YGOProDeck_Card_Info[name].get("race", "None")
-                    listbox.insert(tk.END, f"{name} ({race})")
-            elif sort_var.get() == "By Type":
-                items = sorted(YGOProDeck_Card_Info.keys(), key=lambda x: YGOProDeck_Card_Info[x].get("type", "None"))
-                for name in items:
-                    type_ = YGOProDeck_Card_Info[name].get("type", "None")
-                    listbox.insert(tk.END, f"{name} ({type_})")
-            elif sort_var.get() == "By Konami ID":
-                items = sorted(YGOProDeck_Card_Info.keys(), key=lambda x: YGOProDeck_Card_Info[x]['misc_info'][0].get("konami_id", 0))
-                for name in items:
-                    konami_id = YGOProDeck_Card_Info[name]['misc_info'][0].get("konami_id", 0)
-                    listbox.insert(tk.END, f"{name} ({konami_id})")
-            else:
-                for name in sorted(YGOProDeck_Card_Info.keys()):
-                    listbox.insert(tk.END, name)
-        else:
-            nonlocal selected_format
-            if current_format_stage == "format_select":
-                selected_format = None
-                for fmt in sorted(format_data.keys()):
-                    listbox.insert(tk.END, fmt)
-            elif current_format_stage == "cards" and selected_format:
-                cards_for_format = format_data[selected_format]
-                # Sort
-                if sort_var.get() == "Alphabetical":
-                    items = sorted(cards_for_format.keys())
-                elif sort_var.get() == "By Usage Count":  # By Usage Count descending
-                    items = sorted(cards_for_format.keys(), key=lambda x: cards_for_format[x].get("count", 1), reverse=True)
-                if sort_var.get() == "Alphabetical" or sort_var.get() == "By Usage Count":
-                    # Insert with counts
-                    for name in items:
-                        count = cards_for_format[name].get("count", 1)
-                        listbox.insert(tk.END, f"{name} ({count})")
-                elif sort_var.get() == "By Level":
-                    items = sorted(cards_for_format.keys(), key=lambda x: YGOProDeck_Card_Info[x].get("level", 0) if YGOProDeck_Card_Info[x].get("level", 0) is not None else 0, reverse=True)
-                    for name in items:
-                        level = YGOProDeck_Card_Info[name].get("level", 0)
-                        listbox.insert(tk.END, f"{name} ({level})")
-                elif sort_var.get() == "By Attribute":
-                    items = sorted(cards_for_format.keys(), key=lambda x: YGOProDeck_Card_Info[x].get("attribute", "None"))
-                    for name in items:
-                        attribute = YGOProDeck_Card_Info[name].get("attribute", "None")
-                        listbox.insert(tk.END, f"{name} ({attribute})")
-                elif sort_var.get() == "By ATK":
-                    items = sorted(cards_for_format.keys(), key=lambda x: YGOProDeck_Card_Info[x].get("atk", 0), reverse=True)
-                    for name in items:
-                        atk = YGOProDeck_Card_Info[name].get("atk", 0)
-                        listbox.insert(tk.END, f"{name} ({atk})")
-                elif sort_var.get() == "By DEF":
-                    items = sorted(cards_for_format.keys(), key=lambda x: YGOProDeck_Card_Info[x].get("def", 0) if YGOProDeck_Card_Info[x].get("def", 0) is not None else 0, reverse=True)
-                    for name in items:
-                        defn = YGOProDeck_Card_Info[name].get("def", 0)
-                        listbox.insert(tk.END, f"{name} ({defn})")
-                elif sort_var.get() == "By Race":
-                    items = sorted(cards_for_format.keys(), key=lambda x: YGOProDeck_Card_Info[x].get("race", "None"))
-                    for name in items:
-                        race = YGOProDeck_Card_Info[name].get("race", "None")
-                        listbox.insert(tk.END, f"{name} ({race})")
-                elif sort_var.get() == "By Type":
-                    items = sorted(cards_for_format.keys(), key=lambda x: YGOProDeck_Card_Info[x].get("type", "None"))
-                    for name in items:
-                        type_ = YGOProDeck_Card_Info[name].get("type", "None")
-                        listbox.insert(tk.END, f"{name} ({type_})")
-                elif sort_var.get() == "By Konami ID":
-                    items = sorted(cards_for_format.keys(), key=lambda x: YGOProDeck_Card_Info[x]['misc_info'][0].get("konami_id", 0))
-                    for name in items:
-                        konami_id = YGOProDeck_Card_Info[name]['misc_info'][0].get("konami_id", 0)
-                        listbox.insert(tk.END, f"{name} ({konami_id})")
-
-    sort_var.trace_add("write", update_listbox)
-    update_listbox()
-
-    # ---------- Deck Display ----------
-    deck_text = tk.Text(root, height=10)
-    deck_text.pack(fill="both", expand=True, padx=5, pady=5)
-
-    def update_deck_display():
-        deck_text.delete("1.0", tk.END)
-        for name, count in sorted(deck.items()):
-            deck_text.insert(tk.END, f"{name}: {count}\n")
-
-    # ---------- Add / Remove ----------
-    def add_selected():
-        selection = listbox.curselection()
+    # ------------------ Deck Editing ------------------
+    def add_selected(self):
+        selection = self.listbox.curselection()
         if not selection:
             return
         try:
-            copies = int(copies_var.get())
+            copies = int(self.copies_var.get())
             if copies < 1:
                 raise ValueError
         except ValueError:
             messagebox.showwarning("Invalid Input", "Copies must be a positive integer.")
             return
 
-        name = listbox.get(selection[0]).rsplit(" (", 1)[0]  # remove " (count)"
-        # prevent formats from being added as cards
-        if mode_var.get() == "format" and current_format_stage == "format_select":
+        name = self.listbox.get(selection[0]).rsplit(" (", 1)[0]
+        # Prevent adding formats as cards
+        if self.mode_var.get() == "format" and self.current_format_stage == "format_select":
             return
-        if name in YGOProDeck_Card_Info:
-            deck[name] = deck.get(name, 0) + copies
-            update_deck_display()
+        deck_section = getattr(self, f"{self.current_section.get()}_deck")
+        deck_section[name] = deck_section.get(name, 0) + copies
+        self.update_deck_display()
 
-    def remove_selected():
-        selection = listbox.curselection()
+    def remove_selected(self):
+        selection = self.listbox.curselection()
         if not selection:
             return
-        name = listbox.get(selection[0])
-        if name in deck:
-            del deck[name]
-            update_deck_display()
+        name = self.listbox.get(selection[0]).rsplit(" (", 1)[0]
+        for section in [self.main_deck, self.extra_deck, self.side_deck]:
+            if name in section:
+                del section[name]
+        self.update_deck_display()
 
-    control_frame = tk.Frame(root)
-    control_frame.pack(pady=5)
-    tk.Button(control_frame, text="Add Selected", command=add_selected).pack(side="left", padx=5)
-    tk.Button(control_frame, text="Remove Selected", command=remove_selected).pack(side="left", padx=5)
+    def update_deck_display(self):
+        self.deck_text.delete("1.0", tk.END)
+        self.deck_text.insert(tk.END, "MAIN DECK:\n")
+        for name, count in sorted(self.main_deck.items()):
+            self.deck_text.insert(tk.END, f"  {name}: {count}\n")
+        self.deck_text.insert(tk.END, "\nEXTRA DECK:\n")
+        for name, count in sorted(self.extra_deck.items()):
+            self.deck_text.insert(tk.END, f"  {name}: {count}\n")
+        self.deck_text.insert(tk.END, "\nSIDE DECK:\n")
+        for name, count in sorted(self.side_deck.items()):
+            self.deck_text.insert(tk.END, f"  {name}: {count}\n")
 
-    # ---------- Navigation ----------
-    def on_enter(event=None):
-        selection = listbox.curselection()
+    # ------------------ Navigation ------------------
+    def on_enter(self, event=None):
+        selection = self.listbox.curselection()
         if not selection:
             return
-        name = listbox.get(selection[0])
-        if mode_var.get() == "all":
+        name = self.listbox.get(selection[0]).rsplit(" (", 1)[0]
+        if self.mode_var.get() == "all":
             show_card_preview(name)
         else:
-            nonlocal current_format_stage, selected_format
-            if current_format_stage == "format_select":
-                selected_format = name
-                current_format_stage = "cards"
-                update_listbox()
-            elif current_format_stage == "cards":
+            if self.current_format_stage == "format_select":
+                self.selected_format = name
+                self.current_format_stage = "cards"
+                self.update_listbox()
+            elif self.current_format_stage == "cards":
                 show_card_preview(name)
 
-    def on_backspace(event=None):
-        nonlocal current_format_stage, selected_format
-        if mode_var.get() == "format" and current_format_stage == "cards":
-            current_format_stage = "format_select"
-            selected_format = None
-            update_listbox()
+    def on_backspace(self, event=None):
+        if self.mode_var.get() == "format" and self.current_format_stage == "cards":
+            self.current_format_stage = "format_select"
+            self.selected_format = None
+            self.update_listbox()
 
-    listbox.bind("<Return>", on_enter)
-    listbox.bind("<Double-1>", on_enter)
-    root.bind("<BackSpace>", on_backspace)
+    # ------------------ Finish ------------------
+    def finish(self):
+        # Enforce deck rules
+        if not (1 <= sum(self.main_deck.values()) <= 60):
+            messagebox.showerror("Error", "Main Deck must have between 1 and 60 cards.")
+            return
+        if sum(self.extra_deck.values()) > 15:
+            messagebox.showerror("Error", "Extra Deck cannot exceed 15 cards.")
+            return
+        if sum(self.side_deck.values()) > 15:
+            messagebox.showerror("Error", "Side Deck cannot exceed 15 cards.")
+            return
+        self.root.quit()
+        self.root.destroy()
 
-    # ---------- Finish ----------
-    def finish():
-        root.destroy()
+    # ---------- Update Listbox ----------
+    def update_listbox(self, *args):
+        self.listbox.delete(0, tk.END)
+        if self.mode_var.get() == "all":
+            if self.sort_var.get() == "By Level":
+                items = sorted(YGOProDeck_Card_Info.keys(), key=lambda x: YGOProDeck_Card_Info[x].get("level", 0) if YGOProDeck_Card_Info[x].get("level", 0) is not None else 0, reverse=True)
+                for name in items:
+                    level = YGOProDeck_Card_Info[name].get("level", 0)
+                    self.listbox.insert(tk.END, f"{name} ({level})")
+            elif self.sort_var.get() == "By Attribute":
+                items = sorted(YGOProDeck_Card_Info.keys(), key=lambda x: YGOProDeck_Card_Info[x].get("attribute", "None"))
+                for name in items:
+                    attribute = YGOProDeck_Card_Info[name].get("attribute", "None")
+                    self.listbox.insert(tk.END, f"{name} ({attribute})")
+            elif self.sort_var.get() == "By ATK":
+                items = sorted(YGOProDeck_Card_Info.keys(), key=lambda x: YGOProDeck_Card_Info[x].get("atk", 0), reverse=True)
+                for name in items:
+                    atk = YGOProDeck_Card_Info[name].get("atk", 0)
+                    self.listbox.insert(tk.END, f"{name} ({atk})")
+            elif self.sort_var.get() == "By DEF":
+                items = sorted(YGOProDeck_Card_Info.keys(), key=lambda x: YGOProDeck_Card_Info[x].get("def", 0) if YGOProDeck_Card_Info[x].get("def", 0) is not None else 0, reverse=True)
+                for name in items:
+                    defn = YGOProDeck_Card_Info[name].get("def", 0)
+                    self.listbox.insert(tk.END, f"{name} ({defn})")
+            elif self.sort_var.get() == "By Race":
+                items = sorted(YGOProDeck_Card_Info.keys(), key=lambda x: YGOProDeck_Card_Info[x].get("race", "None"))
+                for name in items:
+                    race = YGOProDeck_Card_Info[name].get("race", "None")
+                    self.listbox.insert(tk.END, f"{name} ({race})")
+            elif self.sort_var.get() == "By Type":
+                items = sorted(YGOProDeck_Card_Info.keys(), key=lambda x: YGOProDeck_Card_Info[x].get("type", "None"))
+                for name in items:
+                    type_ = YGOProDeck_Card_Info[name].get("type", "None")
+                    self.listbox.insert(tk.END, f"{name} ({type_})")
+            elif self.sort_var.get() == "By Konami ID":
+                items = sorted(YGOProDeck_Card_Info.keys(), key=lambda x: YGOProDeck_Card_Info[x]['misc_info'][0].get("konami_id", 0))
+                for name in items:
+                    konami_id = YGOProDeck_Card_Info[name]['misc_info'][0].get("konami_id", 0)
+                    self.listbox.insert(tk.END, f"{name} ({konami_id})")
+            else:
+                for name in sorted(YGOProDeck_Card_Info.keys()):
+                    self.listbox.insert(tk.END, name)
+        else:
+            if self.current_format_stage == "format_select":
+                self.selected_format = None
+                for fmt in sorted(format_data.keys()):
+                    self.listbox.insert(tk.END, fmt)
+            elif self.current_format_stage == "cards" and self.selected_format:
+                cards_for_format = format_data[self.selected_format]
+                # Sort
+                if self.sort_var.get() == "Alphabetical":
+                    items = sorted(cards_for_format.keys())
+                elif self.sort_var.get() == "By Usage Count":  # By Usage Count descending
+                    items = sorted(cards_for_format.keys(), key=lambda x: cards_for_format[x].get("count", 1), reverse=True)
+                if self.sort_var.get() == "Alphabetical" or self.sort_var.get() == "By Usage Count":
+                    # Insert with counts
+                    for name in items:
+                        count = cards_for_format[name].get("count", 1)
+                        self.listbox.insert(tk.END, f"{name} ({count})")
+                elif self.sort_var.get() == "By Level":
+                    items = sorted(cards_for_format.keys(), key=lambda x: YGOProDeck_Card_Info[x].get("level", 0) if YGOProDeck_Card_Info[x].get("level", 0) is not None else 0, reverse=True)
+                    for name in items:
+                        level = YGOProDeck_Card_Info[name].get("level", 0)
+                        self.listbox.insert(tk.END, f"{name} ({level})")
+                elif self.sort_var.get() == "By Attribute":
+                    items = sorted(cards_for_format.keys(), key=lambda x: YGOProDeck_Card_Info[x].get("attribute", "None"))
+                    for name in items:
+                        attribute = YGOProDeck_Card_Info[name].get("attribute", "None")
+                        self.listbox.insert(tk.END, f"{name} ({attribute})")
+                elif self.sort_var.get() == "By ATK":
+                    items = sorted(cards_for_format.keys(), key=lambda x: YGOProDeck_Card_Info[x].get("atk", 0), reverse=True)
+                    for name in items:
+                        atk = YGOProDeck_Card_Info[name].get("atk", 0)
+                        self.listbox.insert(tk.END, f"{name} ({atk})")
+                elif self.sort_var.get() == "By DEF":
+                    items = sorted(cards_for_format.keys(), key=lambda x: YGOProDeck_Card_Info[x].get("def", 0) if YGOProDeck_Card_Info[x].get("def", 0) is not None else 0, reverse=True)
+                    for name in items:
+                        defn = YGOProDeck_Card_Info[name].get("def", 0)
+                        self.listbox.insert(tk.END, f"{name} ({defn})")
+                elif self.sort_var.get() == "By Race":
+                    items = sorted(cards_for_format.keys(), key=lambda x: YGOProDeck_Card_Info[x].get("race", "None"))
+                    for name in items:
+                        race = YGOProDeck_Card_Info[name].get("race", "None")
+                        self.listbox.insert(tk.END, f"{name} ({race})")
+                elif self.sort_var.get() == "By Type":
+                    items = sorted(cards_for_format.keys(), key=lambda x: YGOProDeck_Card_Info[x].get("type", "None"))
+                    for name in items:
+                        type_ = YGOProDeck_Card_Info[name].get("type", "None")
+                        self.listbox.insert(tk.END, f"{name} ({type_})")
+                elif self.sort_var.get() == "By Konami ID":
+                    items = sorted(cards_for_format.keys(), key=lambda x: YGOProDeck_Card_Info[x]['misc_info'][0].get("konami_id", 0))
+                    for name in items:
+                        konami_id = YGOProDeck_Card_Info[name]['misc_info'][0].get("konami_id", 0)
+                        self.listbox.insert(tk.END, f"{name} ({konami_id})")
 
-    tk.Button(root, text="Finish", command=finish).pack(pady=5)
 
+# ------------- Entry point -------------
+def build_deck_interactively():
+    root = tk.Tk()
+    app = DeckBuilder(root)
     root.mainloop()
-    return deck
+    return {
+        "main": app.main_deck,
+        "extra": app.extra_deck,
+        "side": app.side_deck
+    }

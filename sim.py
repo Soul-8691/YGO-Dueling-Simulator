@@ -161,11 +161,21 @@ class DrawCardWindow(tk.Toplevel):
 # Pygame Simulator
 # -----------------------------
 class YGOSimulator:
-    def __init__(self, player_deck, opponent_deck):
+    def __init__(self, player_deck_data, opponent_deck_data):
         pygame.init()
         self.screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
         pygame.display.set_caption("Yu-Gi-Oh! Simulator")
         self.screen_width, self.screen_height = self.screen.get_size()
+
+        
+        # Expand the deck dicts into flat lists for easier draw/remove logic
+        self.player_deck = self._expand_deck(player_deck_data["main"])
+        self.player_extra = self._expand_deck(player_deck_data["extra"])
+        self.player_side = self._expand_deck(player_deck_data["side"])
+
+        self.opponent_deck = self._expand_deck(opponent_deck_data["main"])
+        self.opponent_extra = self._expand_deck(opponent_deck_data["extra"])
+        self.opponent_side = self._expand_deck(opponent_deck_data["side"])
 
         # Hand slot positions (17 slots)
         self.player_hand_slots = [(i*(CARD_WIDTH + SPACING),
@@ -178,26 +188,21 @@ class YGOSimulator:
         # Cards: dicts with name, owner, location
         self.cards = []
 
-        # Initialize decks
-        self.player_deck = player_deck  # load or assign player deck list here
-        self.opponent_deck = opponent_deck  # load or assign opponent deck list here
-
         # Shuffle decks so draw works randomly like in YGO
         import random
         random.shuffle(self.player_deck)
         random.shuffle(self.opponent_deck)
 
         # Draw 5 random cards from each deck as starting hand
-        import random
         self.starting_hand_size = 5
-        player_hand = random.sample(player_deck, min(self.starting_hand_size, len(player_deck)))
-        opponent_hand = random.sample(opponent_deck, min(self.starting_hand_size, len(opponent_deck)))
+        self.player_starting_hand = [self.player_deck.pop(0) for _ in range(self.starting_hand_size)]
+        self.opponent_starting_hand = [self.opponent_deck.pop(0) for _ in range(self.starting_hand_size)]
 
-        for name in player_hand:
+        for name in self.player_starting_hand:
             inst = self._create_card_instance(name, owner="player", location="hand")
             self.cards.append(inst)
 
-        for name in opponent_hand:
+        for name in self.opponent_starting_hand:
             inst = self._create_card_instance(name, owner="opponent", location="hand")
             self.cards.append(inst)
         
@@ -242,6 +247,14 @@ class YGOSimulator:
 
         self.load_cards()
         self.run()
+    
+    def _expand_deck(self, deck_dict):
+        # turns {"Dark Magician": 3, "Blue-Eyes": 2} into
+        # ["Dark Magician", "Dark Magician", "Dark Magician", "Blue-Eyes", "Blue-Eyes"]
+        deck_list = []
+        for name, count in deck_dict.items():
+            deck_list.extend([name] * count)
+        return deck_list
     
     def load_decks(self):
         """Load or build decks for both players."""
@@ -319,25 +332,25 @@ class YGOSimulator:
         y = PLAYER_HAND_Y if owner == "player" else OPPONENT_HAND_Y
         return [(HAND_START_X + i*(CARD_WIDTH + SPACING), y) for i in range(MAX_HAND)]
 
-    def drawplay(self, num=1):
-        for _ in range(num):
+    def drawplay(self, count=1):
+        for _ in range(count):
             if not self.player_deck:
-                print("Player deck is empty!")
+                print("Player has no cards left to draw!")
                 return
-            card_name = self.player_deck.pop(0)  # take top card
+            card_name = self.player_deck.pop(0)  # remove top card
             inst = self._create_card_instance(card_name, owner="player", location="hand")
             self.cards.append(inst)
-            self.load_cards()
+        self.load_cards()
 
-    def drawopp(self, num=1):
-        for _ in range(num):
+    def drawopp(self, count=1):
+        for _ in range(count):
             if not self.opponent_deck:
-                print("Opponent deck is empty!")
+                print("Opponent has no cards left to draw!")
                 return
             card_name = self.opponent_deck.pop(0)
             inst = self._create_card_instance(card_name, owner="opponent", location="hand")
             self.cards.append(inst)
-            self.load_cards()
+        self.load_cards()
 
     def add_card_to_hand(self, card_name, owner):
         """Add a card to the first available hand slot (17 slots)."""
@@ -884,24 +897,12 @@ from sim import YGOSimulator  # your simulator class
 def main():
     # Build/load decks
     print("Select Player Deck")
-    player_deck = build_deck_interactively()
+    player_deck_data = build_deck_interactively()
     print("Select Opponent Deck")
-    opponent_deck = build_deck_interactively()
-
-    # Draw first 5 cards at random for starting field/hand
-    def draw_starting_hand(deck, count=5):
-        deck_list = []
-        for name, copies in deck.items():
-            deck_list.extend([name] * copies)
-        random.shuffle(deck_list)
-        hand = deck_list[:count]
-        return hand
-
-    player_starting_hand = draw_starting_hand(player_deck)
-    opponent_starting_hand = draw_starting_hand(opponent_deck)
+    opponent_deck_data = build_deck_interactively()
 
     # Start simulator
-    sim = YGOSimulator(player_starting_hand, opponent_starting_hand)
+    sim = YGOSimulator(player_deck_data, opponent_deck_data)
     sim.run()
 
 if __name__ == "__main__":
