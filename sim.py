@@ -178,6 +178,15 @@ class YGOSimulator:
         # Cards: dicts with name, owner, location
         self.cards = []
 
+        # Initialize decks
+        self.player_deck = player_deck  # load or assign player deck list here
+        self.opponent_deck = opponent_deck  # load or assign opponent deck list here
+
+        # Shuffle decks so draw works randomly like in YGO
+        import random
+        random.shuffle(self.player_deck)
+        random.shuffle(self.opponent_deck)
+
         # Draw 5 random cards from each deck as starting hand
         import random
         self.starting_hand_size = 5
@@ -310,19 +319,25 @@ class YGOSimulator:
         y = PLAYER_HAND_Y if owner == "player" else OPPONENT_HAND_Y
         return [(HAND_START_X + i*(CARD_WIDTH + SPACING), y) for i in range(MAX_HAND)]
 
-    def drawplay(self):
-        if not self.player_deck:
-            messagebox.showinfo("Deck Empty", "Player deck is empty!")
-            return
-        card_name = self.player_deck.pop(0)  # draw top card
-        self.add_card_to_hand(card_name, "player")
+    def drawplay(self, num=1):
+        for _ in range(num):
+            if not self.player_deck:
+                print("Player deck is empty!")
+                return
+            card_name = self.player_deck.pop(0)  # take top card
+            inst = self._create_card_instance(card_name, owner="player", location="hand")
+            self.cards.append(inst)
+            self.load_cards()
 
-    def drawopp(self):
-        if not self.opponent_deck:
-            messagebox.showinfo("Deck Empty", "Opponent deck is empty!")
-            return
-        card_name = self.opponent_deck.pop(0)
-        self.add_card_to_hand(card_name, "opponent")
+    def drawopp(self, num=1):
+        for _ in range(num):
+            if not self.opponent_deck:
+                print("Opponent deck is empty!")
+                return
+            card_name = self.opponent_deck.pop(0)
+            inst = self._create_card_instance(card_name, owner="opponent", location="hand")
+            self.cards.append(inst)
+            self.load_cards()
 
     def add_card_to_hand(self, card_name, owner):
         """Add a card to the first available hand slot (17 slots)."""
@@ -751,12 +766,17 @@ class YGOSimulator:
                     elif event.key == pygame.K_BACKSPACE:
                         self.console_text = self.console_text[:-1]
                     elif event.key == pygame.K_RETURN:
-                        cmd = self.console_text.strip().lower()
+                        command = self.console_text.strip().split()
+                        if not command:
+                            continue
+
+                        cmd = command[0].lower()
                         self.console_history.append(cmd)
+                        arg = int(command[1]) if len(command) > 1 and command[1].isdigit() else 1
                         if cmd == "drawplay":
-                            self.open_draw_window("player")
+                            self.drawplay(arg)
                         elif cmd == "drawopp":
-                            self.open_draw_window("opponent")
+                            self.drawopp(arg)
                         elif cmd in ("gy", "graveyard"):
                             # open selection and move selected uids to graveyard
                             self.select_cards_from_game_state(lambda uids: self.move_cards_by_uid(uids, "graveyard"))

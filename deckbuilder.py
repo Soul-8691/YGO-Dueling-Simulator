@@ -178,9 +178,6 @@ def build_deck_interactively():
             return
 
         name = listbox.get(selection[0]).rsplit(" (", 1)[0]  # remove " (count)"
-        if name in YGOProDeck_Card_Info:
-            deck[name] = deck.get(name, 0) + copies
-            update_deck_display()
         # prevent formats from being added as cards
         if mode_var.get() == "format" and current_format_stage == "format_select":
             return
