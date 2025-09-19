@@ -1,1 +1,3 @@
-field play/opp commands
+Mirror indexes in field play/opp commands
+Adds cards back to deck
+Reshuffle deck

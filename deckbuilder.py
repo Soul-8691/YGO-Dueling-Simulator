@@ -154,7 +154,7 @@ class DeckBuilder:
         # Bindings
         self.listbox.bind("<Return>", self.on_enter)
         self.listbox.bind("<Double-1>", self.on_enter)
-        self.root.bind("<BackSpace>", self.on_backspace)
+        self.root.bind("<Left>", self.on_left_arrow_key)
 
         # Watchers
         self.sort_var.trace_add("write", self.update_listbox)
@@ -247,7 +247,7 @@ class DeckBuilder:
             elif self.current_format_stage == "cards":
                 show_card_preview(name)
 
-    def on_backspace(self, event=None):
+    def on_left_arrow_key(self, event=None):
         if self.mode_var.get() == "format" and self.current_format_stage == "cards":
             self.current_format_stage = "format_select"
             self.selected_format = None
