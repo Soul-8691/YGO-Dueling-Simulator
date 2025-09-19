@@ -63,6 +63,10 @@ class DeckBuilder:
         # Copies input
         self.copies_var = tk.StringVar(value="1")
 
+        # 🔍 Search bar
+        self.search_var = tk.StringVar(value="")
+        self.search_var.trace_add("write", self.update_listbox)
+
         # Build UI
         self._build_ui()
     
@@ -117,6 +121,12 @@ class DeckBuilder:
         copies_frame.pack(fill="x", pady=2)
         tk.Label(copies_frame, text="Copies to add:").pack(side="left", padx=5)
         tk.Entry(copies_frame, textvariable=self.copies_var, width=5).pack(side="left")
+
+        # Search bar
+        search_frame = tk.Frame(self.root)
+        search_frame.pack(fill="x", padx=5, pady=2)
+        tk.Label(search_frame, text="Search:").pack(side="left")
+        tk.Entry(search_frame, textvariable=self.search_var).pack(side="left", fill="x", expand=True)
 
         # Listbox
         listbox_frame = tk.Frame(self.root)
@@ -260,44 +270,61 @@ class DeckBuilder:
     # ---------- Update Listbox ----------
     def update_listbox(self, *args):
         self.listbox.delete(0, tk.END)
+        query = self.search_var.get().strip().lower()
         if self.mode_var.get() == "all":
             if self.sort_var.get() == "By Level":
                 items = sorted(YGOProDeck_Card_Info.keys(), key=lambda x: YGOProDeck_Card_Info[x].get("level", 0) if YGOProDeck_Card_Info[x].get("level", 0) is not None else 0, reverse=True)
                 for name in items:
+                    if query and query not in name.lower():
+                        continue
                     level = YGOProDeck_Card_Info[name].get("level", 0)
                     self.listbox.insert(tk.END, f"{name} ({level})")
             elif self.sort_var.get() == "By Attribute":
                 items = sorted(YGOProDeck_Card_Info.keys(), key=lambda x: YGOProDeck_Card_Info[x].get("attribute", "None"))
                 for name in items:
+                    if query and query not in name.lower():
+                        continue
                     attribute = YGOProDeck_Card_Info[name].get("attribute", "None")
                     self.listbox.insert(tk.END, f"{name} ({attribute})")
             elif self.sort_var.get() == "By ATK":
                 items = sorted(YGOProDeck_Card_Info.keys(), key=lambda x: YGOProDeck_Card_Info[x].get("atk", 0), reverse=True)
                 for name in items:
+                    if query and query not in name.lower():
+                        continue
                     atk = YGOProDeck_Card_Info[name].get("atk", 0)
                     self.listbox.insert(tk.END, f"{name} ({atk})")
             elif self.sort_var.get() == "By DEF":
                 items = sorted(YGOProDeck_Card_Info.keys(), key=lambda x: YGOProDeck_Card_Info[x].get("def", 0) if YGOProDeck_Card_Info[x].get("def", 0) is not None else 0, reverse=True)
                 for name in items:
+                    if query and query not in name.lower():
+                        continue
                     defn = YGOProDeck_Card_Info[name].get("def", 0)
                     self.listbox.insert(tk.END, f"{name} ({defn})")
             elif self.sort_var.get() == "By Race":
                 items = sorted(YGOProDeck_Card_Info.keys(), key=lambda x: YGOProDeck_Card_Info[x].get("race", "None"))
                 for name in items:
+                    if query and query not in name.lower():
+                        continue
                     race = YGOProDeck_Card_Info[name].get("race", "None")
                     self.listbox.insert(tk.END, f"{name} ({race})")
             elif self.sort_var.get() == "By Type":
                 items = sorted(YGOProDeck_Card_Info.keys(), key=lambda x: YGOProDeck_Card_Info[x].get("type", "None"))
                 for name in items:
+                    if query and query not in name.lower():
+                        continue
                     type_ = YGOProDeck_Card_Info[name].get("type", "None")
                     self.listbox.insert(tk.END, f"{name} ({type_})")
             elif self.sort_var.get() == "By Konami ID":
                 items = sorted(YGOProDeck_Card_Info.keys(), key=lambda x: YGOProDeck_Card_Info[x]['misc_info'][0].get("konami_id", 0))
                 for name in items:
+                    if query and query not in name.lower():
+                        continue
                     konami_id = YGOProDeck_Card_Info[name]['misc_info'][0].get("konami_id", 0)
                     self.listbox.insert(tk.END, f"{name} ({konami_id})")
             else:
                 for name in sorted(YGOProDeck_Card_Info.keys()):
+                    if query and query not in name.lower():
+                        continue
                     self.listbox.insert(tk.END, name)
         else:
             if self.current_format_stage == "format_select":
@@ -314,41 +341,57 @@ class DeckBuilder:
                 if self.sort_var.get() == "Alphabetical" or self.sort_var.get() == "By Usage Count":
                     # Insert with counts
                     for name in items:
+                        if query and query not in name.lower():
+                            continue
                         count = cards_for_format[name].get("count", 1)
                         self.listbox.insert(tk.END, f"{name} ({count})")
                 elif self.sort_var.get() == "By Level":
                     items = sorted(cards_for_format.keys(), key=lambda x: YGOProDeck_Card_Info[x].get("level", 0) if YGOProDeck_Card_Info[x].get("level", 0) is not None else 0, reverse=True)
                     for name in items:
+                        if query and query not in name.lower():
+                            continue
                         level = YGOProDeck_Card_Info[name].get("level", 0)
                         self.listbox.insert(tk.END, f"{name} ({level})")
                 elif self.sort_var.get() == "By Attribute":
                     items = sorted(cards_for_format.keys(), key=lambda x: YGOProDeck_Card_Info[x].get("attribute", "None"))
                     for name in items:
+                        if query and query not in name.lower():
+                            continue
                         attribute = YGOProDeck_Card_Info[name].get("attribute", "None")
                         self.listbox.insert(tk.END, f"{name} ({attribute})")
                 elif self.sort_var.get() == "By ATK":
                     items = sorted(cards_for_format.keys(), key=lambda x: YGOProDeck_Card_Info[x].get("atk", 0), reverse=True)
                     for name in items:
+                        if query and query not in name.lower():
+                            continue
                         atk = YGOProDeck_Card_Info[name].get("atk", 0)
                         self.listbox.insert(tk.END, f"{name} ({atk})")
                 elif self.sort_var.get() == "By DEF":
                     items = sorted(cards_for_format.keys(), key=lambda x: YGOProDeck_Card_Info[x].get("def", 0) if YGOProDeck_Card_Info[x].get("def", 0) is not None else 0, reverse=True)
                     for name in items:
+                        if query and query not in name.lower():
+                            continue
                         defn = YGOProDeck_Card_Info[name].get("def", 0)
                         self.listbox.insert(tk.END, f"{name} ({defn})")
                 elif self.sort_var.get() == "By Race":
                     items = sorted(cards_for_format.keys(), key=lambda x: YGOProDeck_Card_Info[x].get("race", "None"))
                     for name in items:
+                        if query and query not in name.lower():
+                            continue
                         race = YGOProDeck_Card_Info[name].get("race", "None")
                         self.listbox.insert(tk.END, f"{name} ({race})")
                 elif self.sort_var.get() == "By Type":
                     items = sorted(cards_for_format.keys(), key=lambda x: YGOProDeck_Card_Info[x].get("type", "None"))
                     for name in items:
+                        if query and query not in name.lower():
+                            continue
                         type_ = YGOProDeck_Card_Info[name].get("type", "None")
                         self.listbox.insert(tk.END, f"{name} ({type_})")
                 elif self.sort_var.get() == "By Konami ID":
                     items = sorted(cards_for_format.keys(), key=lambda x: YGOProDeck_Card_Info[x]['misc_info'][0].get("konami_id", 0))
                     for name in items:
+                        if query and query not in name.lower():
+                            continue
                         konami_id = YGOProDeck_Card_Info[name]['misc_info'][0].get("konami_id", 0)
                         self.listbox.insert(tk.END, f"{name} ({konami_id})")
 
