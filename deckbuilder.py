@@ -48,10 +48,20 @@ def build_deck_interactively():
     sort_formats_var = tk.StringVar(value="Alphabetical")
     sort_formats_var.trace_add("write", lambda *args: populate_format_list())
 
+    # --- Sort Option (for Format Library) ---
+    sort_var = tk.StringVar(value="Alphabetical")
+
+    # --- Combined Sort Controls ---
     sort_frame = tk.Frame(root)
     sort_frame.pack(fill="x", padx=5, pady=2)
-    tk.Label(sort_frame, text="Sort Formats:").pack(side="left")
-    tk.OptionMenu(sort_frame, sort_formats_var, "Alphabetical", "By Date").pack(side="left")
+
+    # Sort Formats
+    tk.Label(sort_frame, text="Sort Formats:").pack(side="left", padx=5)
+    tk.OptionMenu(sort_frame, sort_formats_var, "Alphabetical", "By Date").pack(side="left", padx=5)
+
+    # Sort Cards
+    tk.Label(sort_frame, text="Sort Cards:").pack(side="left", padx=5)
+    tk.OptionMenu(sort_frame, sort_var, "Alphabetical", "By Level", "By Attribute", "By ATK", "By DEF", "By Race", "By Type", "By Konami ID", "By Usage Count").pack(side="left", padx=5)
 
     def populate_format_list():
         listbox.delete(0, tk.END)
@@ -108,14 +118,6 @@ def build_deck_interactively():
     copies_entry = tk.Entry(root, textvariable=copies_var, width=5)
     copies_entry.pack(side="left", padx=5)
 
-    # --- Sort Option (for Format Library) ---
-    sort_var = tk.StringVar(value="Alphabetical")
-    sort_frame = tk.Frame(root)
-    sort_frame.pack(fill="x", pady=5)
-    tk.Label(sort_frame, text="Sort:").pack(side="left")
-    sort_menu = tk.OptionMenu(sort_frame, sort_var, "Alphabetical", "By Count")
-    sort_menu.pack(side="left")
-
     # --- Listbox ---
     listbox_frame = tk.Frame(root)
     listbox_frame.pack(fill="both", expand=True)
@@ -132,8 +134,44 @@ def build_deck_interactively():
     def update_listbox(*args):
         listbox.delete(0, tk.END)
         if mode_var.get() == "all":
-            for name in sorted(YGOProDeck_Card_Info.keys()):
-                listbox.insert(tk.END, name)
+            if sort_var.get() == "By Level":
+                items = sorted(YGOProDeck_Card_Info.keys(), key=lambda x: YGOProDeck_Card_Info[x].get("level", 0) if YGOProDeck_Card_Info[x].get("level", 0) is not None else 0, reverse=True)
+                for name in items:
+                    level = YGOProDeck_Card_Info[name].get("level", 0)
+                    listbox.insert(tk.END, f"{name} ({level})")
+            elif sort_var.get() == "By Attribute":
+                items = sorted(YGOProDeck_Card_Info.keys(), key=lambda x: YGOProDeck_Card_Info[x].get("attribute", "None"))
+                for name in items:
+                    attribute = YGOProDeck_Card_Info[name].get("attribute", "None")
+                    listbox.insert(tk.END, f"{name} ({attribute})")
+            elif sort_var.get() == "By ATK":
+                items = sorted(YGOProDeck_Card_Info.keys(), key=lambda x: YGOProDeck_Card_Info[x].get("atk", 0), reverse=True)
+                for name in items:
+                    atk = YGOProDeck_Card_Info[name].get("atk", 0)
+                    listbox.insert(tk.END, f"{name} ({atk})")
+            elif sort_var.get() == "By DEF":
+                items = sorted(YGOProDeck_Card_Info.keys(), key=lambda x: YGOProDeck_Card_Info[x].get("def", 0) if YGOProDeck_Card_Info[x].get("def", 0) is not None else 0, reverse=True)
+                for name in items:
+                    defn = YGOProDeck_Card_Info[name].get("def", 0)
+                    listbox.insert(tk.END, f"{name} ({defn})")
+            elif sort_var.get() == "By Race":
+                items = sorted(YGOProDeck_Card_Info.keys(), key=lambda x: YGOProDeck_Card_Info[x].get("race", "None"))
+                for name in items:
+                    race = YGOProDeck_Card_Info[name].get("race", "None")
+                    listbox.insert(tk.END, f"{name} ({race})")
+            elif sort_var.get() == "By Type":
+                items = sorted(YGOProDeck_Card_Info.keys(), key=lambda x: YGOProDeck_Card_Info[x].get("type", "None"))
+                for name in items:
+                    type_ = YGOProDeck_Card_Info[name].get("type", "None")
+                    listbox.insert(tk.END, f"{name} ({type_})")
+            elif sort_var.get() == "By Konami ID":
+                items = sorted(YGOProDeck_Card_Info.keys(), key=lambda x: YGOProDeck_Card_Info[x]['misc_info'][0].get("konami_id", 0))
+                for name in items:
+                    konami_id = YGOProDeck_Card_Info[name]['misc_info'][0].get("konami_id", 0)
+                    listbox.insert(tk.END, f"{name} ({konami_id})")
+            else:
+                for name in sorted(YGOProDeck_Card_Info.keys()):
+                    listbox.insert(tk.END, name)
         else:
             nonlocal selected_format
             if current_format_stage == "format_select":
@@ -145,12 +183,48 @@ def build_deck_interactively():
                 # Sort
                 if sort_var.get() == "Alphabetical":
                     items = sorted(cards_for_format.keys())
-                else:  # By Count descending
+                elif sort_var.get() == "By Usage Count":  # By Usage Count descending
                     items = sorted(cards_for_format.keys(), key=lambda x: cards_for_format[x].get("count", 1), reverse=True)
-                # Insert with counts
-                for name in items:
-                    count = cards_for_format[name].get("count", 1)
-                    listbox.insert(tk.END, f"{name} ({count})")
+                if sort_var.get() == "Alphabetical" or sort_var.get() == "By Usage Count":
+                    # Insert with counts
+                    for name in items:
+                        count = cards_for_format[name].get("count", 1)
+                        listbox.insert(tk.END, f"{name} ({count})")
+                elif sort_var.get() == "By Level":
+                    items = sorted(cards_for_format.keys(), key=lambda x: YGOProDeck_Card_Info[x].get("level", 0) if YGOProDeck_Card_Info[x].get("level", 0) is not None else 0, reverse=True)
+                    for name in items:
+                        level = YGOProDeck_Card_Info[name].get("level", 0)
+                        listbox.insert(tk.END, f"{name} ({level})")
+                elif sort_var.get() == "By Attribute":
+                    items = sorted(cards_for_format.keys(), key=lambda x: YGOProDeck_Card_Info[x].get("attribute", "None"))
+                    for name in items:
+                        attribute = YGOProDeck_Card_Info[name].get("attribute", "None")
+                        listbox.insert(tk.END, f"{name} ({attribute})")
+                elif sort_var.get() == "By ATK":
+                    items = sorted(cards_for_format.keys(), key=lambda x: YGOProDeck_Card_Info[x].get("atk", 0), reverse=True)
+                    for name in items:
+                        atk = YGOProDeck_Card_Info[name].get("atk", 0)
+                        listbox.insert(tk.END, f"{name} ({atk})")
+                elif sort_var.get() == "By DEF":
+                    items = sorted(cards_for_format.keys(), key=lambda x: YGOProDeck_Card_Info[x].get("def", 0) if YGOProDeck_Card_Info[x].get("def", 0) is not None else 0, reverse=True)
+                    for name in items:
+                        defn = YGOProDeck_Card_Info[name].get("def", 0)
+                        listbox.insert(tk.END, f"{name} ({defn})")
+                elif sort_var.get() == "By Race":
+                    items = sorted(cards_for_format.keys(), key=lambda x: YGOProDeck_Card_Info[x].get("race", "None"))
+                    for name in items:
+                        race = YGOProDeck_Card_Info[name].get("race", "None")
+                        listbox.insert(tk.END, f"{name} ({race})")
+                elif sort_var.get() == "By Type":
+                    items = sorted(cards_for_format.keys(), key=lambda x: YGOProDeck_Card_Info[x].get("type", "None"))
+                    for name in items:
+                        type_ = YGOProDeck_Card_Info[name].get("type", "None")
+                        listbox.insert(tk.END, f"{name} ({type_})")
+                elif sort_var.get() == "By Konami ID":
+                    items = sorted(cards_for_format.keys(), key=lambda x: YGOProDeck_Card_Info[x]['misc_info'][0].get("konami_id", 0))
+                    for name in items:
+                        konami_id = YGOProDeck_Card_Info[name]['misc_info'][0].get("konami_id", 0)
+                        listbox.insert(tk.END, f"{name} ({konami_id})")
 
     sort_var.trace_add("write", update_listbox)
     update_listbox()
