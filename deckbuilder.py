@@ -5,6 +5,7 @@ import os
 import requests
 from io import BytesIO
 from PIL import Image, ImageTk
+from collections import Counter
 
 DECKS_DIR = "decks"
 os.makedirs(DECKS_DIR, exist_ok=True)
@@ -138,9 +139,33 @@ class DeckBuilder:
         self.listbox.pack(fill="both", expand=True)
         scrollbar.config(command=self.listbox.yview)
 
-        # Deck display
-        self.deck_text = tk.Text(self.root, height=10)
-        self.deck_text.pack(fill="both", expand=True, padx=5, pady=5)
+        # --- Deck Contents Section ---
+        deck_frame = tk.Frame(self.root)
+        deck_frame.pack(side=tk.RIGHT, fill=tk.BOTH, expand=True, padx=5, pady=5)
+
+        # Container for the 3 lists side-by-side
+        lists_frame = tk.Frame(deck_frame)
+        lists_frame.pack(fill=tk.BOTH, expand=True)
+
+        def create_listbox_with_scrollbar(parent, title):
+            frame = tk.Frame(parent)
+            frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=5)
+
+            tk.Label(frame, text=title).pack(anchor="w")
+
+            scrollbar = tk.Scrollbar(frame)
+            listbox = tk.Listbox(frame, yscrollcommand=scrollbar.set, width=30, height=20)
+            listbox.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+
+            scrollbar.config(command=listbox.yview)
+            scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+
+            return listbox
+
+        # Now create the three deck lists side-by-side
+        self.main_listbox  = create_listbox_with_scrollbar(lists_frame, "Main Deck")
+        self.extra_listbox = create_listbox_with_scrollbar(lists_frame, "Extra Deck")
+        self.side_listbox  = create_listbox_with_scrollbar(lists_frame, "Side Deck")
 
         # Buttons
         control_frame = tk.Frame(self.root)
@@ -225,25 +250,22 @@ class DeckBuilder:
         self.update_deck_display()
 
     def update_deck_display(self):
-        self.deck_text.delete("1.0", tk.END)
+        # Clear existing lists
+        self.main_listbox.delete(0, tk.END)
+        self.extra_listbox.delete(0, tk.END)
+        self.side_listbox.delete(0, tk.END)
 
-        # Main Deck
-        main_total = sum(self.main_deck.values())
-        self.deck_text.insert(tk.END, f"MAIN DECK ({main_total} cards):\n")
-        for name, count in sorted(self.main_deck.items()):
-            self.deck_text.insert(tk.END, f"  {name}: {count}\n")
+        def add_cards_to_listbox(listbox, deck):
+            counts = Counter(deck)  # Count duplicates
+            for card, qty in counts.items():
+                if qty > 1:
+                    listbox.insert(tk.END, f"{card} ({qty}x)")
+                else:
+                    listbox.insert(tk.END, card)
 
-        # Extra Deck
-        extra_total = sum(self.extra_deck.values())
-        self.deck_text.insert(tk.END, f"\nEXTRA DECK ({extra_total} cards):\n")
-        for name, count in sorted(self.extra_deck.items()):
-            self.deck_text.insert(tk.END, f"  {name}: {count}\n")
-
-        # Side Deck
-        side_total = sum(self.side_deck.values())
-        self.deck_text.insert(tk.END, f"\nSIDE DECK ({side_total} cards):\n")
-        for name, count in sorted(self.side_deck.items()):
-            self.deck_text.insert(tk.END, f"  {name}: {count}\n")
+        add_cards_to_listbox(self.main_listbox, self.main_deck)
+        add_cards_to_listbox(self.extra_listbox, self.extra_deck)
+        add_cards_to_listbox(self.side_listbox, self.side_deck)
 
     # ------------------ Navigation ------------------
     def on_enter(self, event=None):
