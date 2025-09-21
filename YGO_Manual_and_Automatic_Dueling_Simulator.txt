@@ -1,4 +1,5 @@
 Mirror indexes in field play/opp commands
+Prevent from duplicate index in field play/opp commands
 Adds cards back to deck
 Reshuffle deck
 Set Spells/Traps face-down
