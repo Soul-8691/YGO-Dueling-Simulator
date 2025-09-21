@@ -176,7 +176,9 @@ class YGOSimulator:
         self.opponent_extra = self._expand_deck(opponent_deck_data["extra"])
         self.opponent_side = self._expand_deck(opponent_deck_data["side"])
         self.player_deck_pos = (self.screen_width-CARD_WIDTH-14, self.screen_height//2 - CARD_HEIGHT//2 + CARD_HEIGHT*2 + gap_y*2)
+        self.player_extra_deck_pos = (self.screen_width-CARD_WIDTH-14-205, self.screen_height//2 - CARD_HEIGHT//2)
         self.opponent_deck_pos = (padding_x-CARD_WIDTH-gap_x, self.screen_height//2 - CARD_HEIGHT//2 - CARD_HEIGHT*2 - gap_y*2)
+        self.opponent_extra_deck_pos = (padding_x-CARD_WIDTH-gap_x+205, self.screen_height//2 - CARD_HEIGHT//2)
 
         # Hand slot positions (17 slots)
         self.player_hand_slots = [(i*(CARD_WIDTH + SPACING),
@@ -568,9 +570,19 @@ class YGOSimulator:
             pos = (self.player_deck_pos[0] + offset, self.player_deck_pos[1] - offset)
             self.screen.blit(self.card_back_surface, pos)
 
+        for i in range(min(5, len(self.player_extra))):
+            offset = i * 0.5
+            pos = (self.player_extra_deck_pos[0] + offset, self.player_extra_deck_pos[1] - offset)
+            self.screen.blit(self.card_back_surface, pos)
+
         for i in range(min(5, len(self.opponent_deck))):
             offset = i * 0.5
             pos = (self.opponent_deck_pos[0] + offset, self.opponent_deck_pos[1] + offset)
+            self.screen.blit(self.card_back_surface, pos)
+
+        for i in range(min(5, len(self.opponent_extra))):
+            offset = i * 0.5
+            pos = (self.opponent_extra_deck_pos[0] + offset, self.opponent_extra_deck_pos[1] - offset)
             self.screen.blit(self.card_back_surface, pos)
 
         # Draw cards (non-dragged)

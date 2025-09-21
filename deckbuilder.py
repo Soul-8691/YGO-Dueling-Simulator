@@ -134,7 +134,7 @@ class DeckBuilder:
         listbox_frame.pack(fill="both", expand=True)
         scrollbar = tk.Scrollbar(listbox_frame)
         scrollbar.pack(side="right", fill="y")
-        self.listbox = tk.Listbox(listbox_frame, selectmode=tk.SINGLE, yscrollcommand=scrollbar.set)
+        self.listbox = tk.Listbox(listbox_frame, selectmode=tk.MULTIPLE, yscrollcommand=scrollbar.set)
         self.listbox.pack(fill="both", expand=True)
         scrollbar.config(command=self.listbox.yview)
 
@@ -190,8 +190,8 @@ class DeckBuilder:
 
     # ------------------ Deck Editing ------------------
     def add_selected(self):
-        selection = self.listbox.curselection()
-        if not selection:
+        selections = self.listbox.curselection()
+        if not selections:
             return
         try:
             copies = int(self.copies_var.get())
@@ -201,33 +201,47 @@ class DeckBuilder:
             messagebox.showwarning("Invalid Input", "Copies must be a positive integer.")
             return
 
-        name = self.listbox.get(selection[0]).rsplit(" (", 1)[0]
-        # Prevent adding formats as cards
-        if self.mode_var.get() == "format" and self.current_format_stage == "format_select":
-            return
-        deck_section = getattr(self, f"{self.current_section.get()}_deck")
-        deck_section[name] = deck_section.get(name, 0) + copies
+        for idx in selections:
+            name = self.listbox.get(idx).rsplit(" (", 1)[0]
+            # Prevent adding formats as cards
+            if self.mode_var.get() == "format" and self.current_format_stage == "format_select":
+                continue
+            deck_section = getattr(self, f"{self.current_section.get()}_deck")
+            deck_section[name] = deck_section.get(name, 0) + copies
+
         self.update_deck_display()
 
     def remove_selected(self):
-        selection = self.listbox.curselection()
-        if not selection:
+        selections = self.listbox.curselection()
+        if not selections:
             return
-        name = self.listbox.get(selection[0]).rsplit(" (", 1)[0]
-        for section in [self.main_deck, self.extra_deck, self.side_deck]:
-            if name in section:
-                del section[name]
+
+        for idx in selections:
+            name = self.listbox.get(idx).rsplit(" (", 1)[0]
+            for section in [self.main_deck, self.extra_deck, self.side_deck]:
+                if name in section:
+                    del section[name]
+
         self.update_deck_display()
 
     def update_deck_display(self):
         self.deck_text.delete("1.0", tk.END)
-        self.deck_text.insert(tk.END, "MAIN DECK:\n")
+
+        # Main Deck
+        main_total = sum(self.main_deck.values())
+        self.deck_text.insert(tk.END, f"MAIN DECK ({main_total} cards):\n")
         for name, count in sorted(self.main_deck.items()):
             self.deck_text.insert(tk.END, f"  {name}: {count}\n")
-        self.deck_text.insert(tk.END, "\nEXTRA DECK:\n")
+
+        # Extra Deck
+        extra_total = sum(self.extra_deck.values())
+        self.deck_text.insert(tk.END, f"\nEXTRA DECK ({extra_total} cards):\n")
         for name, count in sorted(self.extra_deck.items()):
             self.deck_text.insert(tk.END, f"  {name}: {count}\n")
-        self.deck_text.insert(tk.END, "\nSIDE DECK:\n")
+
+        # Side Deck
+        side_total = sum(self.side_deck.values())
+        self.deck_text.insert(tk.END, f"\nSIDE DECK ({side_total} cards):\n")
         for name, count in sorted(self.side_deck.items()):
             self.deck_text.insert(tk.END, f"  {name}: {count}\n")
 
