@@ -116,11 +116,15 @@ class DeckBuilder:
             "By DEF", "By Race", "By Type", "By Konami ID", "By Usage Count"
         ).pack(side="left", padx=5)
 
-        # Top buttons
+        # Top buttons + control buttons
         top_frame = tk.Frame(self.root)
         top_frame.pack(fill="x", padx=5, pady=5)
+
         tk.Button(top_frame, text="Load Deck", command=self.load_deck).pack(side="left", padx=5)
         tk.Button(top_frame, text="Save Deck", command=self.save_deck).pack(side="left", padx=5)
+        tk.Button(top_frame, text="Add Selected", command=self.add_selected).pack(side="left", padx=5)
+        tk.Button(top_frame, text="Remove Selected", command=self.remove_selected).pack(side="left", padx=5)
+        tk.Button(top_frame, text="Finish", command=self.finish).pack(side="left", padx=5)
 
         # Mode
         mode_frame = tk.Frame(self.root)
@@ -162,7 +166,10 @@ class DeckBuilder:
             frame = tk.Frame(parent)
             frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=5)
 
-            tk.Label(frame, text=title).pack(anchor="w")
+            lbl_var = tk.StringVar()
+            lbl_var.set(title + " (0)")  # Initial count 0
+            label = tk.Label(frame, textvariable=lbl_var)
+            label.pack(anchor="w")
 
             scrollbar = tk.Scrollbar(frame)
             listbox = tk.Listbox(frame, yscrollcommand=scrollbar.set, width=30, height=20)
@@ -171,21 +178,12 @@ class DeckBuilder:
             scrollbar.config(command=listbox.yview)
             scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
 
-            return listbox
+            return listbox, lbl_var
 
         # Now create the three deck lists side-by-side
-        self.main_listbox  = create_listbox_with_scrollbar(lists_frame, "Main Deck")
-        self.extra_listbox = create_listbox_with_scrollbar(lists_frame, "Extra Deck")
-        self.side_listbox  = create_listbox_with_scrollbar(lists_frame, "Side Deck")
-
-        # Buttons
-        control_frame = tk.Frame(self.root)
-        control_frame.pack(pady=5)
-        tk.Button(control_frame, text="Add Selected", command=self.add_selected).pack(side="left", padx=5)
-        tk.Button(control_frame, text="Remove Selected", command=self.remove_selected).pack(side="left", padx=5)
-
-        # Finish
-        tk.Button(self.root, text="Finish", command=self.finish).pack(pady=5)
+        self.main_listbox, self.main_label_var  = create_listbox_with_scrollbar(lists_frame, "Main Deck")
+        self.extra_listbox, self.extra_label_var = create_listbox_with_scrollbar(lists_frame, "Extra Deck")
+        self.side_listbox, self.side_label_var   = create_listbox_with_scrollbar(lists_frame, "Side Deck")
 
         # Bindings
         self.listbox.bind("<Return>", self.on_enter)
@@ -277,6 +275,11 @@ class DeckBuilder:
         add_cards_to_listbox(self.main_listbox, self.main_deck)
         add_cards_to_listbox(self.extra_listbox, self.extra_deck)
         add_cards_to_listbox(self.side_listbox, self.side_deck)
+
+        # Update counts
+        self.main_label_var.set(f"Main Deck ({sum(self.main_deck.values())})")
+        self.extra_label_var.set(f"Extra Deck ({sum(self.extra_deck.values())})")
+        self.side_label_var.set(f"Side Deck ({sum(self.side_deck.values())})")
 
     # ------------------ Navigation ------------------
     def on_enter(self, event=None):
