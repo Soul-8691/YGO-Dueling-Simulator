@@ -10,6 +10,12 @@ from collections import Counter
 DECKS_DIR = "decks"
 os.makedirs(DECKS_DIR, exist_ok=True)
 
+EXTRA_DECK_TYPES = [
+    "Fusion Monster", "XYZ Monster", "Synchro Monster", "Link Monster",
+    "Pendulum Effect Fusion Monster", "XYZ Pendulum Effect Monster",
+    "Synchro Pendulum Effect Monster"
+]
+
 # Load card info and format library
 with open("YGOProDeck_Card_Info.json", "r", encoding="utf-8") as f:
     data = json.load(f)
@@ -46,11 +52,16 @@ class DeckBuilder:
         self.root.geometry("750x600")
         self.root.state("zoomed")  # maximize window on start (Windows)
 
+        self.main_deck_list = []    # Cards in the main deck
+        self.extra_deck_list = []   # Cards in the extra deck
+        self.side_deck_list = []    # Cards in the side deck
+
         # Three deck sections
         self.main_deck = {}
         self.extra_deck = {}
         self.side_deck = {}
         self.current_section = tk.StringVar(value="main")
+        self.current_section.trace_add("write", lambda *args: [self.update_listbox(), self.update_deck_display()])
 
         # Format / sort options
         self.sort_formats_var = tk.StringVar(value="Alphabetical")
@@ -314,12 +325,28 @@ class DeckBuilder:
                 for name in items:
                     if query and query not in name.lower():
                         continue
+                    card_type = YGOProDeck_Card_Info[name]["type"]
+
+                    # Only show extra deck cards if editing extra deck
+                    if self.current_section.get() == "extra" and card_type not in EXTRA_DECK_TYPES:
+                        continue
+                    # Only show main/side cards if editing main or side deck
+                    if self.current_section.get() in ["main", "side"] and card_type in EXTRA_DECK_TYPES:
+                        continue
                     level = YGOProDeck_Card_Info[name].get("level", 0)
                     self.listbox.insert(tk.END, f"{name} ({level})")
             elif self.sort_var.get() == "By Attribute":
                 items = sorted(YGOProDeck_Card_Info.keys(), key=lambda x: YGOProDeck_Card_Info[x].get("attribute", "None"))
                 for name in items:
                     if query and query not in name.lower():
+                        continue
+                    card_type = YGOProDeck_Card_Info[name]["type"]
+
+                    # Only show extra deck cards if editing extra deck
+                    if self.current_section.get() == "extra" and card_type not in EXTRA_DECK_TYPES:
+                        continue
+                    # Only show main/side cards if editing main or side deck
+                    if self.current_section.get() in ["main", "side"] and card_type in EXTRA_DECK_TYPES:
                         continue
                     attribute = YGOProDeck_Card_Info[name].get("attribute", "None")
                     self.listbox.insert(tk.END, f"{name} ({attribute})")
@@ -328,12 +355,28 @@ class DeckBuilder:
                 for name in items:
                     if query and query not in name.lower():
                         continue
+                    card_type = YGOProDeck_Card_Info[name]["type"]
+
+                    # Only show extra deck cards if editing extra deck
+                    if self.current_section.get() == "extra" and card_type not in EXTRA_DECK_TYPES:
+                        continue
+                    # Only show main/side cards if editing main or side deck
+                    if self.current_section.get() in ["main", "side"] and card_type in EXTRA_DECK_TYPES:
+                        continue
                     atk = YGOProDeck_Card_Info[name].get("atk", 0)
                     self.listbox.insert(tk.END, f"{name} ({atk})")
             elif self.sort_var.get() == "By DEF":
                 items = sorted(YGOProDeck_Card_Info.keys(), key=lambda x: YGOProDeck_Card_Info[x].get("def", 0) if YGOProDeck_Card_Info[x].get("def", 0) is not None else 0, reverse=True)
                 for name in items:
                     if query and query not in name.lower():
+                        continue
+                    card_type = YGOProDeck_Card_Info[name]["type"]
+
+                    # Only show extra deck cards if editing extra deck
+                    if self.current_section.get() == "extra" and card_type not in EXTRA_DECK_TYPES:
+                        continue
+                    # Only show main/side cards if editing main or side deck
+                    if self.current_section.get() in ["main", "side"] and card_type in EXTRA_DECK_TYPES:
                         continue
                     defn = YGOProDeck_Card_Info[name].get("def", 0)
                     self.listbox.insert(tk.END, f"{name} ({defn})")
@@ -342,12 +385,28 @@ class DeckBuilder:
                 for name in items:
                     if query and query not in name.lower():
                         continue
+                    card_type = YGOProDeck_Card_Info[name]["type"]
+
+                    # Only show extra deck cards if editing extra deck
+                    if self.current_section.get() == "extra" and card_type not in EXTRA_DECK_TYPES:
+                        continue
+                    # Only show main/side cards if editing main or side deck
+                    if self.current_section.get() in ["main", "side"] and card_type in EXTRA_DECK_TYPES:
+                        continue
                     race = YGOProDeck_Card_Info[name].get("race", "None")
                     self.listbox.insert(tk.END, f"{name} ({race})")
             elif self.sort_var.get() == "By Type":
                 items = sorted(YGOProDeck_Card_Info.keys(), key=lambda x: YGOProDeck_Card_Info[x].get("type", "None"))
                 for name in items:
                     if query and query not in name.lower():
+                        continue
+                    card_type = YGOProDeck_Card_Info[name]["type"]
+
+                    # Only show extra deck cards if editing extra deck
+                    if self.current_section.get() == "extra" and card_type not in EXTRA_DECK_TYPES:
+                        continue
+                    # Only show main/side cards if editing main or side deck
+                    if self.current_section.get() in ["main", "side"] and card_type in EXTRA_DECK_TYPES:
                         continue
                     type_ = YGOProDeck_Card_Info[name].get("type", "None")
                     self.listbox.insert(tk.END, f"{name} ({type_})")
@@ -356,11 +415,27 @@ class DeckBuilder:
                 for name in items:
                     if query and query not in name.lower():
                         continue
+                    card_type = YGOProDeck_Card_Info[name]["type"]
+
+                    # Only show extra deck cards if editing extra deck
+                    if self.current_section.get() == "extra" and card_type not in EXTRA_DECK_TYPES:
+                        continue
+                    # Only show main/side cards if editing main or side deck
+                    if self.current_section.get() in ["main", "side"] and card_type in EXTRA_DECK_TYPES:
+                        continue
                     konami_id = YGOProDeck_Card_Info[name]['misc_info'][0].get("konami_id", 0)
                     self.listbox.insert(tk.END, f"{name} ({konami_id})")
             else:
                 for name in sorted(YGOProDeck_Card_Info.keys()):
                     if query and query not in name.lower():
+                        continue
+                    card_type = YGOProDeck_Card_Info[name]["type"]
+
+                    # Only show extra deck cards if editing extra deck
+                    if self.current_section.get() == "extra" and card_type not in EXTRA_DECK_TYPES:
+                        continue
+                    # Only show main/side cards if editing main or side deck
+                    if self.current_section.get() in ["main", "side"] and card_type in EXTRA_DECK_TYPES:
                         continue
                     self.listbox.insert(tk.END, name)
         else:
@@ -380,12 +455,28 @@ class DeckBuilder:
                     for name in items:
                         if query and query not in name.lower():
                             continue
+                        card_type = YGOProDeck_Card_Info[name]["type"]
+
+                        # Only show extra deck cards if editing extra deck
+                        if self.current_section.get() == "extra" and card_type not in EXTRA_DECK_TYPES:
+                            continue
+                        # Only show main/side cards if editing main or side deck
+                        if self.current_section.get() in ["main", "side"] and card_type in EXTRA_DECK_TYPES:
+                            continue
                         count = cards_for_format[name].get("count", 1)
                         self.listbox.insert(tk.END, f"{name} ({count})")
                 elif self.sort_var.get() == "By Level":
                     items = sorted(cards_for_format.keys(), key=lambda x: YGOProDeck_Card_Info[x].get("level", 0) if YGOProDeck_Card_Info[x].get("level", 0) is not None else 0, reverse=True)
                     for name in items:
                         if query and query not in name.lower():
+                            continue
+                        card_type = YGOProDeck_Card_Info[name]["type"]
+
+                        # Only show extra deck cards if editing extra deck
+                        if self.current_section.get() == "extra" and card_type not in EXTRA_DECK_TYPES:
+                            continue
+                        # Only show main/side cards if editing main or side deck
+                        if self.current_section.get() in ["main", "side"] and card_type in EXTRA_DECK_TYPES:
                             continue
                         level = YGOProDeck_Card_Info[name].get("level", 0)
                         self.listbox.insert(tk.END, f"{name} ({level})")
@@ -394,12 +485,28 @@ class DeckBuilder:
                     for name in items:
                         if query and query not in name.lower():
                             continue
+                        card_type = YGOProDeck_Card_Info[name]["type"]
+
+                        # Only show extra deck cards if editing extra deck
+                        if self.current_section.get() == "extra" and card_type not in EXTRA_DECK_TYPES:
+                            continue
+                        # Only show main/side cards if editing main or side deck
+                        if self.current_section.get() in ["main", "side"] and card_type in EXTRA_DECK_TYPES:
+                            continue
                         attribute = YGOProDeck_Card_Info[name].get("attribute", "None")
                         self.listbox.insert(tk.END, f"{name} ({attribute})")
                 elif self.sort_var.get() == "By ATK":
                     items = sorted(cards_for_format.keys(), key=lambda x: YGOProDeck_Card_Info[x].get("atk", 0), reverse=True)
                     for name in items:
                         if query and query not in name.lower():
+                            continue
+                        card_type = YGOProDeck_Card_Info[name]["type"]
+
+                        # Only show extra deck cards if editing extra deck
+                        if self.current_section.get() == "extra" and card_type not in EXTRA_DECK_TYPES:
+                            continue
+                        # Only show main/side cards if editing main or side deck
+                        if self.current_section.get() in ["main", "side"] and card_type in EXTRA_DECK_TYPES:
                             continue
                         atk = YGOProDeck_Card_Info[name].get("atk", 0)
                         self.listbox.insert(tk.END, f"{name} ({atk})")
@@ -408,12 +515,28 @@ class DeckBuilder:
                     for name in items:
                         if query and query not in name.lower():
                             continue
+                        card_type = YGOProDeck_Card_Info[name]["type"]
+
+                        # Only show extra deck cards if editing extra deck
+                        if self.current_section.get() == "extra" and card_type not in EXTRA_DECK_TYPES:
+                            continue
+                        # Only show main/side cards if editing main or side deck
+                        if self.current_section.get() in ["main", "side"] and card_type in EXTRA_DECK_TYPES:
+                            continue
                         defn = YGOProDeck_Card_Info[name].get("def", 0)
                         self.listbox.insert(tk.END, f"{name} ({defn})")
                 elif self.sort_var.get() == "By Race":
                     items = sorted(cards_for_format.keys(), key=lambda x: YGOProDeck_Card_Info[x].get("race", "None"))
                     for name in items:
                         if query and query not in name.lower():
+                            continue
+                        card_type = YGOProDeck_Card_Info[name]["type"]
+
+                        # Only show extra deck cards if editing extra deck
+                        if self.current_section.get() == "extra" and card_type not in EXTRA_DECK_TYPES:
+                            continue
+                        # Only show main/side cards if editing main or side deck
+                        if self.current_section.get() in ["main", "side"] and card_type in EXTRA_DECK_TYPES:
                             continue
                         race = YGOProDeck_Card_Info[name].get("race", "None")
                         self.listbox.insert(tk.END, f"{name} ({race})")
@@ -422,12 +545,28 @@ class DeckBuilder:
                     for name in items:
                         if query and query not in name.lower():
                             continue
+                        card_type = YGOProDeck_Card_Info[name]["type"]
+
+                        # Only show extra deck cards if editing extra deck
+                        if self.current_section.get() == "extra" and card_type not in EXTRA_DECK_TYPES:
+                            continue
+                        # Only show main/side cards if editing main or side deck
+                        if self.current_section.get() in ["main", "side"] and card_type in EXTRA_DECK_TYPES:
+                            continue
                         type_ = YGOProDeck_Card_Info[name].get("type", "None")
                         self.listbox.insert(tk.END, f"{name} ({type_})")
                 elif self.sort_var.get() == "By Konami ID":
                     items = sorted(cards_for_format.keys(), key=lambda x: YGOProDeck_Card_Info[x]['misc_info'][0].get("konami_id", 0))
                     for name in items:
                         if query and query not in name.lower():
+                            continue
+                        card_type = YGOProDeck_Card_Info[name]["type"]
+
+                        # Only show extra deck cards if editing extra deck
+                        if self.current_section.get() == "extra" and card_type not in EXTRA_DECK_TYPES:
+                            continue
+                        # Only show main/side cards if editing main or side deck
+                        if self.current_section.get() in ["main", "side"] and card_type in EXTRA_DECK_TYPES:
                             continue
                         konami_id = YGOProDeck_Card_Info[name]['misc_info'][0].get("konami_id", 0)
                         self.listbox.insert(tk.END, f"{name} ({konami_id})")
