@@ -1,8 +1,6 @@
 Mirror indexes in field play/opp commands
 Adds cards back to deck
 Reshuffle deck
-Right click on a card pulls up a list of options
-Right click -> "Declare Effect" to declare effect
 Set Spells/Traps face-down
 Set Monster cards face-down sideways
 Option to Summon/Set (Monster cards) or Play/Set (Spells/Traps)

@@ -191,6 +191,8 @@ class YGOSimulator:
         # Cards: dicts with name, owner, location
         self.cards = []
 
+        self.context_menu = None
+
         # Shuffle decks so draw works randomly like in YGO
         import random
         random.shuffle(self.player_deck)
@@ -222,10 +224,10 @@ class YGOSimulator:
         self.card_preview_surfaces = []
 
         # Console
-        self.console_font = pygame.font.SysFont(None, 18)
+        self.console_font = pygame.font.SysFont(None, 16)
         self.console_text = ""
         self.console_history = []
-        console_width, console_height = 150, 100
+        console_width, console_height = 275, 100
         self.console_rect = pygame.Rect(380, (self.screen_height - console_height)//2, console_width, console_height)
 
         # Load mat
@@ -262,6 +264,15 @@ class YGOSimulator:
         for name, count in deck_dict.items():
             deck_list.extend([name] * count)
         return deck_list
+    
+    def open_context_menu(self, card, pos):
+        """Opens a simple right-click menu at pos for the given card."""
+        menu_width, menu_height = 120, 60
+        self.context_menu = {
+            "card": card,
+            "rect": pygame.Rect(pos[0], pos[1], menu_width, menu_height),
+            "options": ["Declare", "Close"]
+        }
     
     def load_decks(self):
         """Load or build decks for both players."""
@@ -609,7 +620,7 @@ class YGOSimulator:
         # Console
         pygame.draw.rect(self.screen, (50,50,50), self.console_rect)
         pygame.draw.rect(self.screen, (200,200,200), self.console_rect, 2)
-        line_height = self.console_font.get_height() + 2
+        line_height = self.console_font.get_height()
         max_history = self.console_rect.height // line_height - 1
         display_text = self.console_text
         max_width = self.console_rect.width - 10
@@ -617,7 +628,7 @@ class YGOSimulator:
             display_text = display_text[1:]
         for i, cmd in enumerate(self.console_history[-max_history:]):
             txt_surf = self.console_font.render(cmd, True, (0,255,0))
-            self.screen.blit(txt_surf, (self.console_rect.x+5, self.console_rect.y + i*line_height))
+            self.screen.blit(txt_surf, (self.console_rect.x+5, self.console_rect.y + i*line_height+4))
         txt_surf = self.console_font.render(display_text, True, (255,255,255))
         self.screen.blit(txt_surf, (self.console_rect.x+5, self.console_rect.y + self.console_rect.height - line_height))
 
@@ -627,6 +638,17 @@ class YGOSimulator:
         opponent_lp_text = lp_font.render(f"{self.life_points['opp']}", True, (255,255,255))
         self.screen.blit(player_lp_text, (self.screen_width - 700, self.screen_height//2 + 35))
         self.screen.blit(opponent_lp_text, (self.screen_width - 115, self.screen_height//2 - 50))
+
+        if self.context_menu:
+            rect = self.context_menu["rect"]
+            pygame.draw.rect(self.screen, (200, 200, 200), rect)  # background
+            pygame.draw.rect(self.screen, (0, 0, 0), rect, 2)     # border
+
+            option_height = rect.height // len(self.context_menu["options"])
+            font = pygame.font.SysFont(None, 24)
+            for i, option in enumerate(self.context_menu["options"]):
+                text = font.render(option, True, (0, 0, 0))
+                self.screen.blit(text, (rect.x + 5, rect.y + i * option_height + 5))
 
         pygame.display.flip()
 
@@ -952,6 +974,30 @@ class YGOSimulator:
                     ox, oy = self.opponent_deck_pos
                     if ox <= mx <= ox + CARD_WIDTH and oy <= my <= oy + CARD_HEIGHT and self.opponent_deck:
                         self.drawopp(1)
+                    
+                    if self.context_menu:
+                        mouse_pos = pygame.mouse.get_pos()
+                        rect = self.context_menu["rect"]
+                        if rect.collidepoint(mouse_pos):
+                            # figure out which option was clicked
+                            option_height = rect.height // len(self.context_menu["options"])
+                            index = (mouse_pos[1] - rect.y) // option_height
+                            option = self.context_menu["options"][index]
+
+                            if option == "Declare":
+                                self.console_history.append(f"{self.context_menu['card']['name']} declared")
+                            # either way, close menu after click
+                            self.context_menu = None
+                        else:
+                            # click outside menu closes it
+                            self.context_menu = None
+                
+                elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 3:  # right click
+                    mouse_pos = pygame.mouse.get_pos()
+                    for card in reversed(self.cards):  # reversed so topmost card gets priority
+                        if card["rect"].collidepoint(mouse_pos):
+                            self.open_context_menu(card, mouse_pos)
+                            break
 
                 elif event.type == pygame.MOUSEBUTTONUP and event.button == 1:
                     if self.dragged_card_uid is not None:
