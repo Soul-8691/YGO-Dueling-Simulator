@@ -89,6 +89,3 @@ def handle_disconnect():
     for game_id in list(engine.games.keys()):
         engine.remove_player_from_game(game_id, sid)
         socketio.emit('game_state', engine.game_state(game_id), room=game_id)
-
-if __name__ == '__main__':
-    socketio.run(app, host='0.0.0.0', port=5000)
