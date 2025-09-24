@@ -91,4 +91,4 @@ def handle_disconnect():
         socketio.emit('game_state', engine.game_state(game_id), room=game_id)
 
 if __name__ == '__main__':
-    socketio.run(app, host='0.0.0.0', port=5000, debug=True)
+    socketio.run(app, host='0.0.0.0', port=5000)
