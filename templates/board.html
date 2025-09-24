@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>YGO Duel Board</title>
+  <link rel="stylesheet" href="/static/css/style.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.5.4/socket.io.min.js"></script>
+  <script src="/static/js/main.js"></script>
+</head>
+<body>
+  <h1>Duel Board</h1>
+
+  <div id="joinSection">
+    <form id="joinForm">
+      <input id="playerName" placeholder="Enter your name" required>
+      <button type="submit">Join Duel</button>
+    </form>
+  </div>
+
+  <div id="game" style="display:none;"></div>
+  <div id="turnIndicator" style="font-weight:bold; margin-top:10px;">Waiting for game to start...</div>
+  <button id="endTurnBtn" onclick="endTurn()" style="display:none;">End Turn</button>
+
+  <script>
+    const GAME_ID = "{{ game_id }}";
+    let playerName = null;
+
+    document.getElementById('joinForm').addEventListener('submit', (e) => {
+      e.preventDefault();
+      playerName = document.getElementById('playerName').value;
+      initGame(GAME_ID, playerName);
+      document.getElementById('joinSection').style.display = 'none';
+      document.getElementById('game').style.display = 'block';
+      document.getElementById('endTurnBtn').style.display = 'block';
+    });
+  </script>
+</body>
+</html>

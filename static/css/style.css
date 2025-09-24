@@ -1,0 +1,4 @@
+body { font-family: Arial, sans-serif; }
+#game { display: flex; justify-content: space-around; margin-top: 20px; }
+#game div { border: 1px solid #333; padding: 10px; width: 40%; }
+button { margin: 5px; }
