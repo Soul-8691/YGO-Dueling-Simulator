@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, send_file, session
+from flask import Flask, render_template, request, redirect, url_for, send_file, session, jsonify
 from flask_socketio import SocketIO, emit, join_room, leave_room
 from ygo_engine import YGOEngine  # your engine class
 import os
@@ -50,33 +50,43 @@ def load_user_decks(username):
 @app.route("/load_ydk/<path:deck_file>")
 def load_ydk(deck_file):
     if "username" not in session:
-        return {"error": "Not logged in"}, 401
+        return jsonify({"error": "Not logged in"}), 401
 
     username = session["username"]
     deck_file = unquote(deck_file)  # decode URL-encoded deck names
-    path = os.path.join(USER_DECKS_DIR, username, deck_file)
+    user_folder = os.path.join(USER_DECKS_DIR, username)
 
+    # Check if user folder exists
+    if not os.path.exists(user_folder):
+        return jsonify({"error": "User folder not found"}), 404
+
+    path = os.path.join(user_folder, deck_file)
+
+    # Check if deck file exists
     if not os.path.exists(path):
-        return {"error": "Deck not found"}, 404
+        return jsonify({"error": "Deck not found"}), 404
 
     main, extra, side = [], [], []
     current_section = None
 
-    with open(path, "r", encoding="utf-8") as f:
-        for line in f:
-            line = line.strip()
-            if not line or line.startswith("#created"):
-                continue
-            if line == "#main":
-                current_section = main
-            elif line == "#extra":
-                current_section = extra
-            elif line == "!side":
-                current_section = side
-            elif current_section is not None:
-                current_section.append(line)
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            for line in f:
+                line = line.strip()
+                if not line or line.startswith("#created"):
+                    continue
+                if line == "#main":
+                    current_section = main
+                elif line == "#extra":
+                    current_section = extra
+                elif line == "!side":
+                    current_section = side
+                elif current_section is not None:
+                    current_section.append(line)
+    except Exception as e:
+        return jsonify({"error": f"Failed to read deck: {str(e)}"}), 500
 
-    return {"main": main, "extra": extra, "side": side}
+    return jsonify({"main": main, "extra": extra, "side": side})
 
 # -----------------------
 # Login / User Session
