@@ -1,4 +1,103 @@
-body { font-family: Arial, sans-serif; }
-#game { display: flex; justify-content: space-around; margin-top: 20px; }
-#game div { border: 1px solid #333; padding: 10px; width: 40%; }
-button { margin: 5px; }
+/* General */
+body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    background: #0b0b0b;
+    color: #fff;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    min-height: 100vh;
+}
+
+/* Duel Mat Container */
+.player-field {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    grid-template-rows: repeat(2, 1fr);
+    gap: 0.8vh;
+    margin: 2vh auto;
+    padding: 1vh;
+    width: 70vw;          /* smaller than 90vw */
+    max-width: 900px;     /* smaller max width */
+    aspect-ratio: 7 / 2;  /* keep proportional width/height */
+    background: linear-gradient(to bottom, #1b1b1b, #121212);
+    border: 3px solid #444;
+    border-radius: 10px;
+    box-sizing: border-box;
+}
+
+/* Opponent rotation */
+.player-field.opponent {
+    transform: rotate(180deg);
+    transform-origin: center;
+}
+
+/* Zones styling */
+.monster-zone, .spell-zone, .extra, .deck, .grave, .field {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border-radius: 8px;
+    font-weight: bold;
+    text-align: center;
+    color: #fff;
+    box-shadow: 0 0 5px #000 inset;
+    font-size: 1rem;
+    aspect-ratio: 1 / 1.4; /* width:height ratio like a card */
+}
+
+/* Zone colors */
+.monster-zone { background: #222; border: 2px solid #ff0000; }
+.spell-zone   { background: #111; border: 2px solid #00ffcc; }
+.extra        { background: #333; border: 2px solid #ffcc00; }
+.deck         { background: #333; border: 2px solid #999; }
+.grave        { background: #333; border: 2px solid #666; }
+.field        { background: #111; border: 2px solid #00ccff; }
+
+/* Player Hand */
+.hand {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    margin-top: 2vh;
+    gap: 1vw;
+}
+
+.hand button {
+    width: 8vw;
+    aspect-ratio: 1 / 1.4; /* keep card shape */
+    font-size: 0.8rem;
+    border: 2px solid #555;
+    background: linear-gradient(to bottom, #333, #111);
+    border-radius: 5px;
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+.hand button:hover {
+    border-color: #fff;
+    transform: scale(1.05);
+}
+
+/* Responsive adjustments */
+@media (max-height: 700px) {
+    .player-field {
+        aspect-ratio: 7 / 2;
+    }
+    .hand button {
+        width: 12vw;
+    }
+}
+
+@media (max-width: 600px) {
+    .player-field {
+        width: 95vw;
+        gap: 0.5vh;
+    }
+    .hand button {
+        width: 18vw;
+    }
+}
