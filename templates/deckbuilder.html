@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GOAT Deckbuilder</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap.min.css') }}">
+<style>
+/* Deck card styling */
+.deck-card {
+    cursor: pointer;
+    margin: 2px;
+}
+.deck-card img {
+    width: 30px;
+    height: 42px;
+    object-fit: cover;
+    margin-right: 5px;
+}
+.deck-card span {
+    font-size: 0.75rem;
+}
+
+/* Deck container */
+.deck-container {
+    min-height: 150px;
+    max-height: 350px;
+    overflow-y: auto;
+    border-radius: 0.5rem;
+    padding: 5px;
+}
+
+/* Search bar spacing */
+.search-bar {
+    margin-bottom: 1rem;
+}
+
+/* Card Pool */
+.card img {
+    max-width: 100%;
+    border-radius: 0.5rem;
+}
+.card-body small {
+    font-size: 0.75rem;
+}
+
+/* Responsive adjustments */
+@media (max-width: 767px) {
+    .deck-container { max-height: 250px; }
+    .deck-card img { width: 25px; height: 35px; }
+    .deck-card span { font-size: 0.7rem; }
+    #card-list .card-body small { font-size: 0.65rem; }
+}
+</style>
+</head>
+<body class="bg-dark text-light">
+
+<!-- Navbar similar to Duel Simulator -->
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark border-bottom border-secondary mb-4">
+    <div class="container-fluid">
+        <a class="navbar-brand text-white" href="#">GOAT Deckbuilder</a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"
+                aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav ms-auto">
+                <li class="nav-item"><a class="nav-link text-light" href="#">Home</a></li>
+                <li class="nav-item"><a class="nav-link text-light" href="#">Decks</a></li>
+                <li class="nav-item"><a class="nav-link text-light" href="#">Settings</a></li>
+                <li class="nav-item"><a class="nav-link text-light" href="#">Leaderboard</a></li>
+            </ul>
+        </div>
+    </div>
+</nav>
+
+<div class="container-fluid">
+    <div class="row gx-3 gy-3">
+        <!-- Card Pool -->
+        <div class="col-md-6 col-lg-7 d-flex flex-column">
+            <h2 class="text-center text-light mb-2">Card Pool</h2>
+            <input type="text" id="search" class="form-control search-bar" placeholder="Search cards...">
+            <div id="card-list" class="row g-2 flex-grow-1 overflow-auto"></div>
+
+            <div class="d-flex justify-content-center align-items-center mt-2">
+                <button id="prev-page" class="btn btn-secondary me-2">Prev</button>
+                <span id="page-info" class="mx-2"></span>
+                <button id="next-page" class="btn btn-secondary ms-2">Next</button>
+            </div>
+        </div>
+
+        <!-- Deck Column -->
+        <div class="col-md-6 col-lg-5 d-flex flex-column">
+            <h2 class="text-center text-light mb-2">Deck</h2>
+
+            <h5>Main Deck (<span id="main-count">0</span>/40–60)</h5>
+            <div id="main-deck" class="deck-container bg-secondary mb-2"></div>
+
+            <h5>Extra Deck (<span id="extra-count">0</span>/15)</h5>
+            <div id="extra-deck" class="deck-container bg-secondary mb-2"></div>
+
+            <h5>Side Deck (<span id="side-count">0</span>/15)</h5>
+            <div id="side-deck" class="deck-container bg-secondary mb-2"></div>
+
+            <div class="my-2 d-flex flex-wrap align-items-center">
+                <label class="me-2"><input type="radio" name="deck-target" value="main" checked> Main</label>
+                <label class="me-2"><input type="radio" name="deck-target" value="side"> Side</label>
+            </div>
+                <div class="input-group mb-2">
+        <select id="load-deck-select" class="form-select">
+            <option value="">-- Load Saved Deck --</option>
+            {% for deck in user_decks %}
+            <option value="{{ deck }}">{{ deck }}</option>
+            {% endfor %}
+        </select>
+        <button id="load-deck" class="btn btn-primary">Load</button>
+    </div>
+
+            <div class="input-group mb-2">
+                <input type="text" id="deck-name" class="form-control" placeholder="Deck Name">
+                <button id="save-deck" class="btn btn-danger">Save</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+const goatCards = {{ goat_cards|tojson }};
+const userDecks = {{ user_decks|tojson }};
+</script>
+<script src="{{ url_for('static', filename='js/deckbuilder.js') }}"></script>
+<script src="{{ url_for('static', filename='js/bootstrap.bundle.min.js') }}"></script>
+
+</body>
+</html>

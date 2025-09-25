@@ -1,33 +1,47 @@
-let socket;
+// Make socket global
+if (!window.socket) window.socket = io();
 
-document.addEventListener('DOMContentLoaded', () => {
-    const joinForm = document.getElementById('joinForm');
-    joinForm.addEventListener('submit', (e) => {
-        e.preventDefault();
-        const playerName = document.getElementById('playerName').value;
-        const gameDiv = document.getElementById('game');
-        const gameId = gameDiv.dataset.gameId;
-        initGame(gameId, playerName);
-        joinForm.style.display = 'none';
-        document.getElementById('endTurnBtn').style.display = 'block';
-    });
+document.addEventListener('DOMContentLoaded', async () => {
+    const playerName = window.USERNAME;
+    const gameId = window.GAME_ID;
+
+    if (!playerName || !gameId) {
+        alert("Username or game ID not found!");
+        return;
+    }
+
+    await initGame(gameId, playerName);
+
+    const endBtn = document.getElementById('endTurnBtn');
+    if (endBtn) endBtn.style.display = 'block';
 });
 
-function initGame(gameId, playerName) {
-    socket = io();
+async function initGame(gameId, playerName) {
+    const socket = window.socket;
+
+    // Load player's deck
+    let deckData = null;
+    if (window.USER_DECK) {
+        const res = await fetch(`/load_ydk/${window.USER_DECK}`);
+        deckData = await res.json();
+    }
 
     socket.on('connect', () => {
         console.log('Connected as', socket.id);
-        socket.emit('join', { game_id: gameId, name: playerName });
+        socket.emit('join', { game_id: gameId, name: playerName, deck: deckData });
     });
 
+    // Listen for game state updates
     socket.on('game_state', (state) => {
         if (!state.started) {
             document.getElementById('turnIndicator').innerText = 'Waiting for another player...';
             return;
         }
+
         renderAllFields(state);
-        renderHand(state.players[socket.id], state);
+        renderOpponentHands(state);
+        const selfPlayer = state.players[socket.id];
+        renderHand(selfPlayer, state);
         updateTurnIndicator(state.turn, state.players);
     });
 
@@ -37,14 +51,33 @@ function initGame(gameId, playerName) {
     });
 }
 
-// Render both self and opponent fields
+// Render all player fields
 function renderAllFields(state) {
     for (const playerId in state.players) {
         const player = state.players[playerId];
-        const container = (playerId === socket.id)
+        const container = (playerId === window.socket.id)
             ? document.querySelector('.player-field.self')
             : document.querySelector('.player-field.opponent');
         renderZones(container, player);
+    }
+}
+
+// Render opponent hands as card backs
+function renderOpponentHands(state) {
+    const opponentDiv = document.querySelector('.opponent-hand');
+    if (!opponentDiv) return;
+
+    opponentDiv.innerHTML = '<strong>Opponent Hand:</strong> ';
+    for (const playerId in state.players) {
+        if (playerId === window.socket.id) continue; // skip self
+        const player = state.players[playerId];
+        for (let i = 0; i < (player.hand?.length || 0); i++) {
+            const img = document.createElement('img');
+            img.src = '/static/images/card_back.png'; // card back image
+            img.alt = 'Card Back';
+            img.className = 'hand-card';
+            opponentDiv.appendChild(img);
+        }
     }
 }
 
@@ -60,28 +93,52 @@ function renderZones(container, player) {
     container.querySelector('.grave').innerText = `GY (${player.grave?.length || 0})`;
     container.querySelector('.field').innerText = player.fieldSpell?.name || 'Field';
 
-    // Populate monster zones
+    // Render monster zones as images
     (player.field || []).forEach((card, i) => {
-        if (monsterZones[i]) monsterZones[i].innerText = `${card.name}\nATK: ${card.attack}`;
+        if (monsterZones[i]) {
+            monsterZones[i].innerHTML = '';
+            const img = document.createElement('img');
+            img.src = card.image || '/static/images/default_card.png';
+            img.alt = card.name;
+            img.title = `${card.name}\nATK: ${card.attack ?? card.atk}\nDEF: ${card.defense ?? card.def}`;
+            img.classList.add('board-card');
+            monsterZones[i].appendChild(img);
+        }
     });
 
-    // Populate spell zones
+    // Render spell zones as images
     (player.spell || []).forEach((card, i) => {
-        if (spellZones[i]) spellZones[i].innerText = card.name;
+        if (spellZones[i]) {
+            spellZones[i].innerHTML = '';
+            const img = document.createElement('img');
+            img.src = card.image || '/static/images/default_card.png';
+            img.alt = card.name;
+            img.title = card.name;
+            img.classList.add('board-card');
+            spellZones[i].appendChild(img);
+        }
     });
 }
 
-// Render the player's hand
+// Render player's hand as images
 function renderHand(player, state) {
     if (!player) return;
+
     const handDiv = document.querySelector('.hand-container');
     handDiv.innerHTML = '<strong>Hand:</strong> ';
+
     (player.hand || []).forEach(card => {
-        const btn = document.createElement('button');
-        btn.innerText = card.name;
-        btn.disabled = (state.turn !== socket.id); // only allow playing on your turn
-        btn.onclick = () => socket.emit('play_card', { game_id: state.id, card_id: card.name });
-        handDiv.appendChild(btn);
+        const img = document.createElement('img');
+        img.src = card.image || '/static/images/default_card.png';
+        img.alt = card.name;
+        img.title = card.name;
+        img.classList.add('hand-card');
+        img.onclick = () => {
+            if (state.turn === window.socket.id) {
+                window.socket.emit('play_card', { game_id: state.id, card_id: card.id ?? card.name });
+            }
+        };
+        handDiv.appendChild(img);
     });
 }
 
@@ -92,9 +149,9 @@ function updateTurnIndicator(turnSid, players) {
     turnDiv.innerText = "Current Turn: " + players[turnSid].name;
 }
 
-// End turn
+// End turn button
 function endTurn() {
+    if (!window.socket) return;
     const gameDiv = document.getElementById('game');
-    if (!gameDiv || !socket) return;
-    socket.emit('end_turn', { game_id: gameDiv.dataset.gameId });
+    window.socket.emit('end_turn', { game_id: gameDiv.dataset.gameId });
 }

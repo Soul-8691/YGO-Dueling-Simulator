@@ -25,11 +25,19 @@ class YGOEngine:
     # -------------------------
     # Player Management
     # -------------------------
-    def add_player_to_game(self, game_id, sid, name):
+    def add_player_to_game(self, game_id, sid, name, deck_data=None):
+        # Create the game if it doesn't exist yet
         game = self.get_game(game_id)
-        if game:
-            return game.add_player(sid, name)
-        return None
+        if not game:
+            game_id = game_id or str(uuid.uuid4())
+            game = GameState()
+            self.games[game.id] = game
+
+        # Add the player
+        player = game.add_player(sid, name, deck_data)
+
+        print(f"[YGOEngine] Game {game.id}: {len(game.players)} player(s), started: {game.started}")
+        return player
 
     def remove_player_from_game(self, game_id, sid):
         game = self.get_game(game_id)
@@ -86,8 +94,15 @@ class YGOEngine:
         return []
     
     def play_card(self, game_id, sid, card_name):
-        """Play a card from hand to field."""
-        return self.summon_card(game_id, sid, card_name)
+        game = self.get_game(game_id)
+        if game and sid in game.players:
+            player = game.players[sid]
+            for card in player.hand:
+                if card.name == card_name:
+                    player.hand.remove(card)
+                    player.field.append(card)  # ✅ append actual Card object
+                    return True
+        return False
 
     # -------------------------
     # Game State

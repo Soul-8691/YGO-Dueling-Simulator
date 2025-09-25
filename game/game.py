@@ -19,29 +19,47 @@ class GameState:
         # Switch to the other player
         self.turn = player_ids[1] if self.turn == player_ids[0] else player_ids[0]    
 
-    def add_player(self, sid, name):
+    def add_player(self, sid, name, deck_data=None):
         from .deck import Deck
         from .card import Card
         from .player import Player
-
-        # Sample cards for demonstration
-        sample_cards = [Card("Blue-Eyes White Dragon", 3000, 2500),
-                        Card("Dark Magician", 2500, 2100)] * 5
+        from flask import current_app
 
         if sid not in self.players:
-            deck = Deck(sample_cards[:])
+            cards = []
+            if deck_data:  # user deck from JS
+                for cname in deck_data.get("main", []):
+                    card_info = current_app.config['GOAT_CARDS'].get(cname)
+                    if card_info:
+                        cards.append(Card(
+                            name=card_info['name'],
+                            attack=int(card_info.get('atk') or 0),
+                            defense=int(card_info.get('def') or 0),
+                            card_type=card_info.get('type', 'Monster'),
+                            attribute=card_info.get('attribute'),
+                            level=card_info.get('level'),
+                            effect=card_info.get('desc', ''),
+                            image=card_info.get('local_images', '/static/images/default_card.png')
+                        ))
+           
+
+            deck = Deck(cards)
             player = Player(name, deck)
-            # draw initial hand
+
+            # Draw initial hand (actual Card objects)
             for _ in range(5):
                 player.draw()
+
             self.players[sid] = player
 
-        # Start the game when two players are present
+        # Start game when 2 players present
         if len(self.players) == 2 and not self.started:
             self.turn = list(self.players.keys())[0]
             self.started = True
 
         return self.players[sid]
+
+    
     
 
     def remove_player(self, sid):
