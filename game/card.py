@@ -3,7 +3,8 @@ from typing import Optional
 
 @dataclass
 class Card:
-    def __init__(self, name, attack=0, defense=0, card_type="Monster", attribute=None, level=None, effect="", image=None):
+    def __init__(self, card_id, name, attack=0, defense=0, card_type="Monster", attribute=None, level=None, effect="", image=None):
+        self.card_id = card_id
         self.name = name
         self.attack = attack
         self.defense = defense
@@ -15,6 +16,7 @@ class Card:
 
     def to_dict(self):
         return {
+            "card_id": self.card_id,
             "name": self.name,
             "attack": self.attack,
             "defense": self.defense,

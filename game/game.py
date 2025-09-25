@@ -32,6 +32,7 @@ class GameState:
                     card_info = current_app.config['GOAT_CARDS'].get(cname)
                     if card_info:
                         cards.append(Card(
+                            card_id=card_info['id'],
                             name=card_info['name'],
                             attack=int(card_info.get('atk') or 0),
                             defense=int(card_info.get('def') or 0),
