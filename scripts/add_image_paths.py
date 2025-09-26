@@ -18,19 +18,19 @@ def main():
     with open(GOAT_JSON, "r", encoding="utf-8") as f:
         goat_cards = json.load(f)
 
-    for card in goat_cards:
-        card_name = sanitize_name(card['name'])
-        local_images = []
+    for card_name in goat_cards:
+        alt_ids = []
 
         # Check how many images exist for this card
         card_dir = os.path.join(IMG_DIR, card_name)
         if os.path.exists(card_dir):
             images = sorted(os.listdir(card_dir))
             for i, img in enumerate(images, start=1):
-                local_images.append(f"/static/img/card/{card_name}/{img}")
+                if '_cropped' not in img and int(f"{img.replace('.jpg', '')}") != goat_cards[card_name]['id']:
+                    alt_ids.append(int(f"{img.replace('.jpg', '')}"))
 
         # Add field to card JSON
-        card['local_images'] = local_images
+        goat_cards[card_name]['alt_ids'] = alt_ids
 
     # Save updated JSON
     with open(UPDATED_JSON, "w", encoding="utf-8") as f:
