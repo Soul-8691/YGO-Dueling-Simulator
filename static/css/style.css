@@ -1,103 +1,145 @@
-/* General */
+/* =======================
+   General page styling
+   ======================= */
 body {
-    font-family: Arial, sans-serif;
-    margin: 0;
-    padding: 0;
-    background: #0b0b0b;
-    color: #fff;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: flex-start;
-    min-height: 100vh;
+  font-family: Arial, sans-serif;
+  margin: 0;
+  padding: 0;
+  background: #0b0b0b;
+  color: #fff;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  min-height: 100vh;
 }
 
-/* Duel Mat Container */
-.player-field {
-    display: grid;
-    grid-template-columns: repeat(7, 1fr);
-    grid-template-rows: repeat(2, 1fr);
-    gap: 0.8vh;
-    margin: 2vh auto;
-    padding: 1vh;
-    width: 70vw;          /* smaller than 90vw */
-    max-width: 900px;     /* smaller max width */
-    aspect-ratio: 7 / 2;  /* keep proportional width/height */
-    background: linear-gradient(to bottom, #1b1b1b, #121212);
-    border: 3px solid #444;
-    border-radius: 10px;
+/* Playmat */
+.playmat {
+    position: relative;
+    width: 1366px;
+    height: 768px;
+    background: url("../images/playmat.png") no-repeat center center;
+    background-size: 1067px 600px;
+    border: 2px solid #444;
+}
+
+/* Universal slot */
+.slot {
+    position: absolute;
+    width: 49px;
+    height: 71px;
+    font-size: 10px;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    opacity: 0.8;
     box-sizing: border-box;
 }
 
-/* Opponent rotation */
-.player-field.opponent {
-    transform: rotate(180deg);
-    transform-origin: center;
+/* Colors for debug */
+.monster { background: rgba(255,0,0,0.5); }
+.spell   { background: rgba(0,128,255,0.5); }
+.deck    { background: rgba(255,255,0,0.5); }
+.extra   { background: rgba(255,165,0,0.5); }
+.grave   { background: rgba(128,128,128,0.5); }
+.field   { background: rgba(0,255,128,0.5); }
+
+.slot {
+  position: absolute;
+  width: 49px;
+  height: 71px;
+  border: 1px dashed rgba(255,255,255,0.3); /* debug only */
+  box-sizing: border-box;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 10px;
+  color: #fff;
 }
 
-/* Zones styling */
-.monster-zone, .spell-zone, .extra, .deck, .grave, .field {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    border-radius: 8px;
-    font-weight: bold;
-    text-align: center;
-    color: #fff;
-    box-shadow: 0 0 5px #000 inset;
-    font-size: 1rem;
-    aspect-ratio: 1 / 1.4; /* width:height ratio like a card */
-}
+/* =========================
+   PLAYER FIELD (bottom)
+   ========================= */
+/* Top row (near opponent) */
+.player.field { top: 402px; left: 442px; }           /* Field Card Zone */
+.player.monster-1 { top: 402px; left: 514px; }      /* Monster 1 */
+.player.monster-2 { top: 402px; left: 586px; }      /* Monster 2 */
+.player.monster-3 { top: 402px; left: 658px; }      /* Monster 3 */
+.player.monster-4 { top: 402px; left: 730px; }      /* Monster 4 */
+.player.monster-5 { top: 402px; left: 802px; }      /* Monster 5 */
+.player.grave { top: 402px; left: 874px; }          /* Graveyard */
 
-/* Zone colors */
-.monster-zone { background: #222; border: 2px solid #ff0000; }
-.spell-zone   { background: #111; border: 2px solid #00ffcc; }
-.extra        { background: #333; border: 2px solid #ffcc00; }
-.deck         { background: #333; border: 2px solid #999; }
-.grave        { background: #333; border: 2px solid #666; }
-.field        { background: #111; border: 2px solid #00ccff; }
+/* Bottom row (near player) */
+.player.extra { top: 498px; left: 442px; }          /* Fusion / Extra Deck */
+.player.spell-1 { top: 498px; left: 514px; }       /* Spell/Trap 1 */
+.player.spell-2 { top: 498px; left: 586px; }       /* Spell/Trap 2 */
+.player.spell-3 { top: 498px; left: 658px; }       /* Spell/Trap 3 */
+.player.spell-4 { top: 498px; left: 730px; }       /* Spell/Trap 4 */
+.player.spell-5 { top: 498px; left: 802px; }       /* Spell/Trap 5 */
+.player.deck { top: 498px; left: 874px; }          /* Deck */
 
-/* Player Hand */
+/* =========================
+   OPPONENT FIELD (top, 180° rotated)
+   ========================= */
+/* Top row (far from player) */
+.opponent.deck { top: 194px; left: 442px; }       /* Deck */
+.opponent.spell-1 { top: 194px; left: 514px; }    /* Spell/Trap 1 */
+.opponent.spell-2 { top: 194px; left: 586px; }    /* Spell/Trap 2 */
+.opponent.spell-3 { top: 194px; left: 658px; }    /* Spell/Trap 3 */
+.opponent.spell-4 { top: 194px; left: 730px; }    /* Spell/Trap 4 */
+.opponent.spell-5 { top: 194px; left: 802px; }    /* Spell/Trap 5 */
+.opponent.extra { top: 194px; left: 874px; }      /* Extra Deck */
+
+/* Bottom row (closer to player) */
+.opponent.grave { top: 290px; left: 442px; }      /* Graveyard */
+.opponent.monster-1 { top: 290px; left: 514px; }  /* Monster 1 */
+.opponent.monster-2 { top: 290px; left: 586px; }  /* Monster 2 */
+.opponent.monster-3 { top: 290px; left: 658px; }  /* Monster 3 */
+.opponent.monster-4 { top: 290px; left: 730px; }  /* Monster 4 */
+.opponent.monster-5 { top: 290px; left: 802px; }  /* Monster 5 */
+.opponent.field { top: 290px; left: 874px; }      /* Field Card Zone */
+
+/* =======================
+   Player Hand
+   ======================= */
 .hand {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    margin-top: 2vh;
-    gap: 1vw;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-top: 2vh;
+  gap: 1vw;
 }
 
 .hand button {
-    width: 8vw;
-    aspect-ratio: 1 / 1.4; /* keep card shape */
-    font-size: 0.8rem;
-    border: 2px solid #555;
-    background: linear-gradient(to bottom, #333, #111);
-    border-radius: 5px;
-    cursor: pointer;
-    transition: 0.2s;
+  width: 8vw;
+  aspect-ratio: 1 / 1.4;
+  font-size: 0.8rem;
+  border: 2px solid #555;
+  background: linear-gradient(to bottom, #333, #111);
+  border-radius: 5px;
+  cursor: pointer;
+  transition: 0.2s;
 }
 
 .hand button:hover {
-    border-color: #fff;
-    transform: scale(1.05);
+  border-color: #fff;
+  transform: scale(1.05);
 }
 
-/* Responsive adjustments */
+/* =======================
+   Responsive adjustments
+   ======================= */
 @media (max-height: 700px) {
-    .player-field {
-        aspect-ratio: 7 / 2;
-    }
-    .hand button {
-        width: 12vw;
-    }
+  .hand button { width: 12vw; }
 }
 
 @media (max-width: 600px) {
-    .player-field {
-        width: 95vw;
-        gap: 0.5vh;
-    }
-    .hand button {
-        width: 18vw;
-    }
+  .playmat {
+    width: 95vw;
+    height: auto;   /* keep proportions */
+  }
+  .hand button { width: 18vw; }
 }

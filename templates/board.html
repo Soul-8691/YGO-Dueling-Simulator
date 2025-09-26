@@ -1,109 +1,103 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>YGO Duel Board</title>
+    <title>YGO Duel Board (Debug)</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap.min.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.5.4/socket.io.min.js"></script>
     <style>
+      /* Hand styling stays inline for now */
       .hand-container {
-    display: flex;
-    gap: 5px;
-    padding: 5px;
-}
+        display: flex;
+        gap: 5px;
+        padding: 5px;
+      }
+      .hand-card {
+        width: 100px;
+        cursor: pointer;
+        transition: transform 0.2s;
+      }
+      .hand-card:hover {
+        transform: scale(1.1);
+      }
+      .board-card {
+        width: 80px;
+        display: block;
+      }
 
-.hand-card {
-    width: 100px;
-    cursor: pointer;
-    transition: transform 0.2s;
-}
-
-.hand-card:hover {
-    transform: scale(1.1);
-}
-
-.board-card {
-    width: 80px;
-    display: block;
-}
+      /* Debug visuals */
+      .zone {
+        border: 1px dashed yellow;   /* visible box */
+        background: rgba(255,0,0,0.2); /* translucent red */
+        font-size: 0.7rem;
+        color: #fff;
+        text-align: center;
+      }
     </style>
 </head>
 <body class="bg-dark text-light">
 
 <nav class="navbar navbar-expand-lg navbar-dark bg-dark border-bottom border-secondary">
-    <div class="container-fluid">
-        <a class="navbar-brand text-white" href="#">YGO Duel</a>
-    </div>
+  <div class="container-fluid">
+    <a class="navbar-brand text-white" href="#">YGO Duel</a>
+  </div>
 </nav>
 
 <div class="container-fluid py-4">
 
-    <h1 class="text-center mb-4">Duel Board</h1>
+  <h1 class="text-center mb-4">Duel Board (Debug)</h1>
 
-    <!-- Deck selection -->
-    <div id="joinSection" class="text-center mb-3">
-      <select id="load-deck-select">
+  <!-- Deck selection -->
+  <div id="joinSection" class="text-center mb-3">
+    <select id="load-deck-select">
       {% for deck in user_decks %}
         <option value="{{ deck }}">{{ deck.replace('.ydk','') }}</option>
       {% endfor %}
-      </select>
+    </select>
+  </div>
+
+  <!-- Turn indicator -->
+  <div id="turnIndicator" class="text-center mb-3">Waiting for game to start...</div>
+  <div class="text-center mb-4">
+    <button id="endTurnBtn" class="btn btn-warning" onclick="endTurn()" style="display:none;">End Turn</button>
+  </div>
+
+  <!-- Duel board -->
+  <div id="game" data-game-id="{{ game_id }}">
+    <div class="playmat">
+        <!-- Opponent slots -->
+
+
+        <!-- Player slots -->
+        <div class="slot player field">Field</div>
+        <div class="slot player monster-1">M1</div>
+        <div class="slot player monster-2">M2</div>
+        <div class="slot player monster-3">M3</div>
+        <div class="slot player monster-4">M4</div>
+        <div class="slot player monster-5">M5</div>
+        <div class="slot player grave">GY</div>
+        <div class="slot player extra">Extra</div>
+        <div class="slot player spell-1">S1</div>
+        <div class="slot player spell-2">S2</div>
+        <div class="slot player spell-3">S3</div>
+        <div class="slot player spell-4">S4</div>
+        <div class="slot player spell-5">S5</div>
+        <div class="slot player deck">Deck</div>
     </div>
 
-    <!-- Turn indicator -->
-    <div id="turnIndicator" class="text-center mb-3">Waiting for game to start...</div>
-    <div class="text-center mb-4">
-        <button id="endTurnBtn" class="btn btn-warning" onclick="endTurn()" style="display:none;">End Turn</button>
-    </div>
+    <!-- Opponent hand -->
+    <div class="opponent-hand d-flex gap-2 mt-3 flex-wrap justify-content-center"></div>
 
-    <!-- Duel board -->
-    <div id="game" data-game-id="{{ game_id }}">
-      <div class="opponent-hand d-flex gap-2 mt-3 flex-wrap justify-content-center"></div>
-        <!-- Opponent Field -->
-        <div class="player-field opponent">
-            <div class="extra border border-secondary rounded"></div>
-            <div class="monster-zone border border-danger rounded"></div>
-            <div class="monster-zone border border-danger rounded"></div>
-            <div class="monster-zone border border-danger rounded"></div>
-            <div class="monster-zone border border-danger rounded"></div>
-            <div class="monster-zone border border-danger rounded"></div>
-            <div class="grave border border-secondary rounded"></div>
-            <div class="field border border-secondary rounded"></div>
-            <div class="spell-zone border border-primary rounded"></div>
-            <div class="spell-zone border border-primary rounded"></div>
-            <div class="spell-zone border border-primary rounded"></div>
-            <div class="spell-zone border border-primary rounded"></div>
-            <div class="spell-zone border border-primary rounded"></div>
-            <div class="deck border border-secondary rounded"></div>
-        </div>
-
-        <!-- Your Field -->
-        <div class="player-field self">
-            <div class="extra border border-secondary rounded">Extra</div>
-            <div class="monster-zone border border-danger rounded">M1</div>
-            <div class="monster-zone border border-danger rounded">M2</div>
-            <div class="monster-zone border border-danger rounded">M3</div>
-            <div class="monster-zone border border-danger rounded">M4</div>
-            <div class="monster-zone border border-danger rounded">M5</div>
-            <div class="grave border border-secondary rounded">GY</div>
-            <div class="field border border-secondary rounded">Field</div>
-            <div class="spell-zone border border-primary rounded">S1</div>
-            <div class="spell-zone border border-primary rounded">S2</div>
-            <div class="spell-zone border border-primary rounded">S3</div>
-            <div class="spell-zone border border-primary rounded">S4</div>
-            <div class="spell-zone border border-primary rounded">S5</div>
-            <div class="deck border border-secondary rounded">Deck</div>
-        </div>
-
-        <!-- Player hand -->
-        <div id="playerHand" class="hand-container d-flex gap-2 mt-3 flex-wrap justify-content-center"></div>
-    </div>
+    <!-- Player hand -->
+    <div id="playerHand" class="hand-container d-flex gap-2 mt-3 flex-wrap justify-content-center"></div>
+  </div>
 </div>
 
 <!-- Set JS globals -->
 <script>
-    window.USERNAME = "{{ session['username'] }}";
-    window.GAME_ID = "{{ game_id }}";
-    window.USER_DECK = {% if user_decks %}"{{ user_decks[0] }}"{% else %}null{% endif %};
+  window.USERNAME = "{{ session['username'] }}";
+  window.GAME_ID = "{{ game_id }}";
+  window.USER_DECK = {% if user_decks %}"{{ user_decks[0] }}"{% else %}null{% endif %};
 </script>
 <script src="{{ url_for('static', filename='js/main.js') }}"></script>
 
