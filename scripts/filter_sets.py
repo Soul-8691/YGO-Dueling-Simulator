@@ -1,7 +1,7 @@
 import json
 
-# Load sets.json
-with open("json/sets.json", "r", encoding="utf-8") as f:
+# Load sets_info.json
+with open("json/sets_info.json", "r", encoding="utf-8") as f:
     sets_data = json.load(f)
 
 # Create a set of valid set names
