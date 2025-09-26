@@ -1,0 +1,604 @@
+﻿[
+  {
+    "Abbr.": "LOB",
+    "Name": "Legend of Blue Eyes White Dragon",
+    "Type": "Core Booster",
+    "Release date": "8 March 2002",
+    "Notes": ""
+  },
+  {
+    "Abbr.": "DDS",
+    "Name": "Yu-Gi-Oh! Dark Duel Stories promotional cards",
+    "Type": "Video game promotion",
+    "Release date": "19 March 2002",
+    "Notes": ""
+  },
+  {
+    "Abbr.": "SDK",
+    "Name": "Starter Deck: Kaiba",
+    "Type": "Starter Deck",
+    "Release date": "29 March 2002",
+    "Notes": ""
+  },
+  {
+    "Abbr.": "SDY",
+    "Name": "Starter Deck: Yugi",
+    "Type": "Starter Deck",
+    "Release date": "29 March 2002",
+    "Notes": ""
+  },
+  {
+    "Abbr.": "MRD",
+    "Name": "Metal Raiders",
+    "Type": "Core Booster",
+    "Release date": "26 June 2002",
+    "Notes": ""
+  },
+  {
+    "Abbr.": "TP1",
+    "Name": "Tournament Pack: 1st Season",
+    "Type": "Tournament Pack",
+    "Release date": "1 September 2002",
+    "Notes": ""
+  },
+  {
+    "Abbr.": "SRL",
+    "Name": "Spell Ruler",
+    "Type": "Core Booster",
+    "Release date": "16 September 2002",
+    "Notes": ""
+  },
+  {
+    "Abbr.": "TP2",
+    "Name": "Tournament Pack: 2nd Season",
+    "Type": "Tournament Pack",
+    "Release date": "1 October 2002",
+    "Notes": ""
+  },
+  {
+    "Abbr.": "BPT",
+    "Name": "Booster Pack Collectors Tins 2002",
+    "Type": "Tin",
+    "Release date": "4 October 2002",
+    "Notes": ""
+  },
+  {
+    "Abbr.": "EDS",
+    "Name": "Yu-Gi-Oh! The Eternal Duelist Soul promotional cards",
+    "Type": "Video game promotion",
+    "Release date": "15 October 2002",
+    "Notes": ""
+  },
+  {
+    "Abbr.": "PSV",
+    "Name": "Pharaoh's Servant",
+    "Type": "Core Booster",
+    "Release date": "20 October 2002",
+    "Notes": ""
+  },
+  {
+    "Abbr.": "JMP",
+    "Name": "Shonen Jump Vol. 1, Issue 1 promotional card",
+    "Type": "Magazine promotion",
+    "Release date": "26 November 2002",
+    "Notes": "Blue-Eyes White Dragon (UR)"
+  },
+  {
+    "Abbr.": "FMR",
+    "Name": "Yu-Gi-Oh! Forbidden Memories Premium Edition promotional cards",
+    "Type": "Video game promotion",
+    "Release date": "26 November 2002",
+    "Notes": ""
+  },
+  {
+    "Abbr.": "MP1",
+    "Name": "McDonald's Promotional Cards",
+    "Type": "Promotional set",
+    "Release date": "20 December 2002",
+    "Notes": ""
+  },
+  {
+    "Abbr.": "DL1",
+    "Name": "Duelist League Series 1 participation cards",
+    "Type": "Tournament promotion",
+    "Release date": "1 January 2003",
+    "Notes": ""
+  },
+  {
+    "Abbr.": "DOR",
+    "Name": "Yu-Gi-Oh! The Duelists of the Roses promotional cards",
+    "Type": "Video game promotion",
+    "Release date": "16 February 2003",
+    "Notes": ""
+  },
+  {
+    "Abbr.": "LON",
+    "Name": "Labyrinth of Nightmare",
+    "Type": "Core Booster",
+    "Release date": "1 March 2003",
+    "Notes": ""
+  },
+  {
+    "Abbr.": "TP3",
+    "Name": "Tournament Pack: 3rd Season",
+    "Type": "Tournament Pack",
+    "Release date": "1 March 2003",
+    "Notes": ""
+  },
+  {
+    "Abbr.": "SDJ",
+    "Name": "Starter Deck: Joey",
+    "Type": "Starter Deck",
+    "Release date": "30 March 2003",
+    "Notes": ""
+  },
+  {
+    "Abbr.": "SDP",
+    "Name": "Starter Deck: Pegasus",
+    "Type": "Starter Deck",
+    "Release date": "30 March 2003",
+    "Notes": ""
+  },
+  {
+    "Abbr.": "",
+    "Name": "Starter Deck: Joey Deluxe Edition",
+    "Type": "Bundle",
+    "Release date": "April 2003",
+    "Notes": ""
+  },
+  {
+    "Abbr.": "SDD",
+    "Name": "Yu-Gi-Oh! Worldwide Edition: Stairway to the Destined Duel promotional cards",
+    "Type": "Video game promotion",
+    "Release date": "15 April 2003",
+    "Notes": ""
+  },
+  {
+    "Abbr.": "LOD",
+    "Name": "Legacy of Darkness",
+    "Type": "Core Booster",
+    "Release date": "6 June 2003",
+    "Notes": ""
+  },
+  {
+    "Abbr.": "DL2",
+    "Name": "Duelist League Series 2 participation cards",
+    "Type": "Tournament promotion",
+    "Release date": "15 July 2003",
+    "Notes": "The Masked Beast (SR)"
+  },
+  {
+    "Abbr.": "PGD",
+    "Name": "Pharaonic Guardian",
+    "Type": "Core Booster",
+    "Release date": "18 July 2003",
+    "Notes": ""
+  },
+  {
+    "Abbr.": "BPT",
+    "Name": "Collectible Tins 2003",
+    "Type": "Tin",
+    "Release date": "1 September 2003",
+    "Notes": ""
+  },
+  {
+    "Abbr.": "TP4",
+    "Name": "Tournament Pack 4",
+    "Type": "Tournament Pack",
+    "Release date": "1 October 2003",
+    "Notes": ""
+  },
+  {
+    "Abbr.": "MFC",
+    "Name": "Magician's Force",
+    "Type": "Core Booster",
+    "Release date": "10 October 2003",
+    "Notes": ""
+  },
+  {
+    "Abbr.": "DMG",
+    "Name": "Duel Master's Guide promotional cards",
+    "Type": "Book promotion",
+    "Release date": "28 October 2003",
+    "Notes": "Dark Paladin (ScR)"
+  },
+  {
+    "Abbr.": "TFK",
+    "Name": "Yu-Gi-Oh! The Falsebound Kingdom promotional cards",
+    "Type": "Video game promotion",
+    "Release date": "4 November 2003",
+    "Notes": ""
+  },
+  {
+    "Abbr.": "TSC",
+    "Name": "Yu-Gi-Oh! The Sacred Cards promotional cards",
+    "Type": "Video game promotion",
+    "Release date": "4 November 2003",
+    "Notes": ""
+  },
+  {
+    "Abbr.": "PCY",
+    "Name": "Yu-Gi-Oh! Power of Chaos: Yugi the Destiny promotional cards",
+    "Type": "Video game promotion",
+    "Release date": "18 November 2003",
+    "Notes": ""
+  },
+  {
+    "Abbr.": "PCY",
+    "Name": "Yu-Gi-Oh! Power of Chaos: Yugi the Destiny Limited Collector's Edition",
+    "Type": "Video game promotion",
+    "Release date": "28 November 2003",
+    "Notes": ""
+  },
+  {
+    "Abbr.": "DCR",
+    "Name": "Dark Crisis",
+    "Type": "Core Booster",
+    "Release date": "1 December 2003",
+    "Notes": ""
+  },
+  {
+    "Abbr.": "JMP",
+    "Name": "Shonen Jump Vol. 2, Issue 1 promotional card",
+    "Type": "Magazine promotion",
+    "Release date": "1 January 2004",
+    "Notes": "Red-Eyes Black Dragon (UR)"
+  },
+  {
+    "Abbr.": "WC4",
+    "Name": "Yu-Gi-Oh! World Championship Tournament 2004 promotional cards",
+    "Type": "Video game promotion",
+    "Release date": "10 February 2004",
+    "Notes": ""
+  },
+  {
+    "Abbr.": "IOC",
+    "Name": "Invasion of Chaos",
+    "Type": "Core Booster",
+    "Release date": "1 March 2004",
+    "Notes": ""
+  },
+  {
+    "Abbr.": "SKE",
+    "Name": "Starter Deck: Kaiba Evolution",
+    "Type": "Starter Deck",
+    "Release date": "1 March 2004",
+    "Notes": ""
+  },
+  {
+    "Abbr.": "SYE",
+    "Name": "Starter Deck: Yugi Evolution",
+    "Type": "Starter Deck",
+    "Release date": "1 March 2004",
+    "Notes": ""
+  },
+  {
+    "Abbr.": "DOD",
+    "Name": "Yu-Gi-Oh! The Dawn of Destiny promotional cards",
+    "Type": "Video game promotion",
+    "Release date": "23 March 2004",
+    "Notes": ""
+  },
+  {
+    "Abbr.": "IOC-SE",
+    "Name": "Invasion of Chaos: Special Edition",
+    "Type": "Special Edition",
+    "Release date": "1 April 2004",
+    "Notes": ""
+  },
+  {
+    "Abbr.": "PCK",
+    "Name": "Yu-Gi-Oh! Power of Chaos: Kaiba the Revenge promotional cards",
+    "Type": "Video game promotion",
+    "Release date": "6 April 2004",
+    "Notes": ""
+  },
+  {
+    "Abbr.": "EP1",
+    "Name": "Kids' WB! Duel of Destiny promotional card",
+    "Type": "Promotional card",
+    "Release date": "5 May 2004",
+    "Notes": "Card of Sanctity (C)"
+  },
+  {
+    "Abbr.": "AST",
+    "Name": "Ancient Sanctuary",
+    "Type": "Core Booster",
+    "Release date": "1 June 2004",
+    "Notes": ""
+  },
+  {
+    "Abbr.": "EM1",
+    "Name": "Yu-Gi-Oh! Trading Card Game Tour 2004 promotional card",
+    "Type": "Tournament promotion",
+    "Release date": "19 June 2004",
+    "Notes": "Machine King (UR)"
+  },
+  {
+    "Abbr.": "PCJ",
+    "Name": "Yu-Gi-Oh! Power of Chaos: Joey the Passion promotional cards",
+    "Type": "Video game promotion",
+    "Release date": "29 June 2004",
+    "Notes": ""
+  },
+  {
+    "Abbr.": "ROD",
+    "Name": "Yu-Gi-Oh! Reshef of Destruction promotional cards",
+    "Type": "Video game promotion",
+    "Release date": "29 June 2004",
+    "Notes": ""
+  },
+  {
+    "Abbr.": "WCS",
+    "Name": "Yu-Gi-Oh! World Championship 2004 prize cards",
+    "Type": "Tournament promotion",
+    "Release date": "25 July 2004",
+    "Notes": "Ulevo (UR)"
+  },
+  {
+    "Abbr.": "EP1",
+    "Name": "Exclusive Pack",
+    "Type": "Promotional set",
+    "Release date": "1 August 2004",
+    "Notes": ""
+  },
+  {
+    "Abbr.": "MOV",
+    "Name": "Movie Pack",
+    "Type": "Promotional set",
+    "Release date": "13 August 2004",
+    "Notes": ""
+  },
+  {
+    "Abbr.": "CT1",
+    "Name": "Collectible Tins 2004",
+    "Type": "Tin",
+    "Release date": "1 September 2004",
+    "Notes": ""
+  },
+  {
+    "Abbr.": "DL5",
+    "Name": "Duelist League Series 5 participation card",
+    "Type": "Tournament promotion",
+    "Release date": "1 September 2004",
+    "Notes": "Restructer Revolution (SR)"
+  },
+  {
+    "Abbr.": "HL1",
+    "Name": "Hobby League 1 participation cards A",
+    "Type": "Tournament promotion",
+    "Release date": "1 October 2004",
+    "Notes": "Lord of the Lamp (C)"
+  },
+  {
+    "Abbr.": "SOD",
+    "Name": "Soul of the Duelist",
+    "Type": "Core Booster",
+    "Release date": "1 October 2004",
+    "Notes": ""
+  },
+  {
+    "Abbr.": "DB1",
+    "Name": "Dark Beginning 1",
+    "Type": "Booster Pack",
+    "Release date": "12 October 2004",
+    "Notes": ""
+  },
+  {
+    "Abbr.": "DBT",
+    "Name": "Yu-Gi-Oh! Destiny Board Traveler promotional cards",
+    "Type": "Video game promotion",
+    "Release date": "26 October 2004",
+    "Notes": ""
+  },
+  {
+    "Abbr.": "TP5",
+    "Name": "Tournament Pack 5",
+    "Type": "Tournament Pack",
+    "Release date": "1 November 2004",
+    "Notes": ""
+  },
+  {
+    "Abbr.": "YMA",
+    "Name": "Yu-Gi-Oh! The Movie Ani-Manga promotional card",
+    "Type": "Manga promotion",
+    "Release date": "1 November 2004",
+    "Notes": "Slifer the Sky Dragon (PScR) (English)"
+  },
+  {
+    "Abbr.": "CMC",
+    "Name": "Yu-Gi-Oh! Capsule Monster Coliseum promotional cards",
+    "Type": "Video game promotion",
+    "Release date": "26 November 2004",
+    "Notes": ""
+  },
+  {
+    "Abbr.": "DL6",
+    "Name": "Duelist League Series 6 participation card",
+    "Type": "Tournament promotion",
+    "Release date": "1 December 2004",
+    "Notes": "Toon Gemini Elf (SR)"
+  },
+  {
+    "Abbr.": "HL1",
+    "Name": "Hobby League 1 participation cards B",
+    "Type": "Tournament promotion",
+    "Release date": "December 2004",
+    "Notes": "A Legendary Ocean (C)"
+  },
+  {
+    "Abbr.": "MC1",
+    "Name": "Master Collection Volume 1",
+    "Type": "Collector's set",
+    "Release date": "1 December 2004",
+    "Notes": ""
+  },
+  {
+    "Abbr.": "RDS",
+    "Name": "Rise of Destiny",
+    "Type": "Core Booster",
+    "Release date": "1 December 2004",
+    "Notes": ""
+  },
+  {
+    "Abbr.": "SJC",
+    "Name": "Shonen Jump Championship 2004 Prize Card",
+    "Type": "Tournament promotion",
+    "Release date": "1 December 2004",
+    "Notes": "Cyber Stein (SR)"
+  },
+  {
+    "Abbr.": "JMP",
+    "Name": "Shonen Jump Vol. 3, Issue 1 promotional card",
+    "Type": "Magazine promotion",
+    "Release date": "1 January 2005",
+    "Notes": "Archfiend of Gilfer (SR)"
+  },
+  {
+    "Abbr.": "SD1",
+    "Name": "Structure Deck: Dragon's Roar",
+    "Type": "Structure Deck",
+    "Release date": "1 January 2005",
+    "Notes": ""
+  },
+  {
+    "Abbr.": "SD2",
+    "Name": "Structure Deck: Zombie Madness",
+    "Type": "Structure Deck",
+    "Release date": "1 January 2005",
+    "Notes": ""
+  },
+  {
+    "Abbr.": "HL1",
+    "Name": "Hobby League 1 participation cards C",
+    "Type": "Tournament promotion",
+    "Release date": "February 2005",
+    "Notes": "Fusion Gate (C)"
+  },
+  {
+    "Abbr.": "RDS-SE",
+    "Name": "Rise of Destiny: Special Edition",
+    "Type": "Special Edition",
+    "Release date": "1 February 2005",
+    "Notes": ""
+  },
+  {
+    "Abbr.": "WC5",
+    "Name": "Yu-Gi-Oh! 7 Trials to Glory: World Championship Tournament 2005 promotional cards",
+    "Type": "Video game promotion",
+    "Release date": "15 February 2005",
+    "Notes": ""
+  },
+  {
+    "Abbr.": "SP1",
+    "Name": "Flaming Eternity Sneak Peek Participation Card",
+    "Type": "Sneak peek",
+    "Release date": "26 February 2005",
+    "Notes": "Cyber Harpie Lady (UR)"
+  },
+  {
+    "Abbr.": "FET",
+    "Name": "Flaming Eternity",
+    "Type": "Core Booster",
+    "Release date": "1 March 2005",
+    "Notes": ""
+  },
+  {
+    "Abbr.": "DR1",
+    "Name": "Dark Revelation Volume 1",
+    "Type": "Booster Pack",
+    "Release date": "19 March 2005",
+    "Notes": ""
+  },
+  {
+    "Abbr.": "DL7",
+    "Name": "Duelist League Series 7 participation card",
+    "Type": "Tournament promotion",
+    "Release date": "1 April 2005",
+    "Notes": "Toon Goblin Attack Force (SR)"
+  },
+  {
+    "Abbr.": "SD3",
+    "Name": "Structure Deck: Blaze of Destruction",
+    "Type": "Structure Deck",
+    "Release date": "6 May 2005",
+    "Notes": ""
+  },
+  {
+    "Abbr.": "SD4",
+    "Name": "Structure Deck: Fury from the Deep",
+    "Type": "Structure Deck",
+    "Release date": "6 May 2005",
+    "Notes": ""
+  },
+  {
+    "Abbr.": "SP1",
+    "Name": "The Lost Millennium Sneak Peek Participation Card",
+    "Type": "Sneak Peek",
+    "Release date": "28 May 2005",
+    "Notes": "Amazoness Chain Master (UR)"
+  },
+  {
+    "Abbr.": "SP1",
+    "Name": "Shonen Jump Vol. 3, Issue 6 promotional card",
+    "Type": "Magazine promotion",
+    "Release date": "June 2005",
+    "Notes": "Cyber Harpie Lady (UR)"
+  },
+  {
+    "Abbr.": "TLM",
+    "Name": "The Lost Millennium",
+    "Type": "Core Booster",
+    "Release date": "1 June 2005",
+    "Notes": ""
+  },
+  {
+    "Abbr.": "TP6",
+    "Name": "Tournament Pack 6",
+    "Type": "Tournament Pack",
+    "Release date": "1 June 2005",
+    "Notes": ""
+  },
+  {
+    "Abbr.": "TLM-SE",
+    "Name": "The Lost Millennium: Special Edition",
+    "Type": "Special Edition",
+    "Release date": "10 June 2005",
+    "Notes": ""
+  },
+  {
+    "Abbr.": "DL8",
+    "Name": "Duelist League Series 8 participation card",
+    "Type": "Tournament promotion",
+    "Release date": "30 June 2005",
+    "Notes": "Acid Rain (SR)"
+  },
+  {
+    "Abbr.": "DB2",
+    "Name": "Dark Beginning 2",
+    "Type": "Booster Pack",
+    "Release date": "27 July 2005",
+    "Notes": ""
+  },
+  {
+    "Abbr.": "TYL",
+    "Name": "Make-A-Wish Foundation promotional card",
+    "Type": "One of a kind",
+    "Release date": "5 August 2005",
+    "Notes": "Tyler the Great Warrior (UR)"
+  },
+  {
+    "Abbr.": "SP1",
+    "Name": "Cybernetic Revolution Sneak Peek Participation Card",
+    "Type": "Sneak Peek",
+    "Release date": "6 August 2005",
+    "Notes": "Embodiment of Apophis (UR)"
+  },
+  {
+    "Abbr.": "WCS-5",
+    "Name": "Yu-Gi-Oh! World Championship 2005 prize cards",
+    "Type": "Tournament promotion",
+    "Release date": "7 August 2005",
+    "Notes": ""
+  }
+]
