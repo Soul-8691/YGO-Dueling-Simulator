@@ -3,109 +3,68 @@
 <head>
     <title>YGO Duel Board</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap.min.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.5.4/socket.io.min.js"></script>
     <style>
-      .hand-container {
-    display: flex;
-    gap: 5px;
-    padding: 5px;
-}
+        body {
+            background: #1a1a1a;
+            color: white;
+            margin: 0;
+            font-family: Arial, sans-serif;
+        }
 
-.hand-card {
-    width: 100px;
-    cursor: pointer;
-    transition: transform 0.2s;
-}
+        #gameContainer {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
 
-.hand-card:hover {
-    transform: scale(1.1);
-}
+        #turnIndicator {
+            margin: 10px 0;
+        }
 
-.board-card {
-    width: 80px;
-    display: block;
-}
+        #endTurnBtn {
+            margin-bottom: 20px;
+        }
+
+        select {
+            margin-bottom: 10px;
+        }
+
+        canvas {
+            border: 2px solid #555;
+            background: linear-gradient(45deg, #1a1a1a, #2a2a40, #1a1a1a);
+        }
     </style>
 </head>
-<body class="bg-dark text-light">
+<body>
+    <nav class="navbar navbar-dark bg-dark border-bottom border-secondary">
+        <div class="container-fluid">
+            <a class="navbar-brand text-white" href="#">YGO Duel</a>
+        </div>
+    </nav>
+<div class ="container">
+    <div id="gameContainer">
+        <h1>Duel Board</h1>
 
-<nav class="navbar navbar-expand-lg navbar-dark bg-dark border-bottom border-secondary">
-    <div class="container-fluid">
-        <a class="navbar-brand text-white" href="#">YGO Duel</a>
-    </div>
-</nav>
+        <div id="joinSection" class="text-center mb-3">
+            <select id="load-deck-select">
+                {% for deck in user_decks %}
+                    <option value="{{ deck }}">{{ deck.replace('.ydk','') }}</option>
+                {% endfor %}
+            </select>
+        </div>
 
-<div class="container-fluid py-4">
-
-    <h1 class="text-center mb-4">Duel Board</h1>
-
-    <!-- Deck selection -->
-    <div id="joinSection" class="text-center mb-3">
-      <select id="load-deck-select">
-      {% for deck in user_decks %}
-        <option value="{{ deck }}">{{ deck.replace('.ydk','') }}</option>
-      {% endfor %}
-      </select>
-    </div>
-
-    <!-- Turn indicator -->
-    <div id="turnIndicator" class="text-center mb-3">Waiting for game to start...</div>
-    <div class="text-center mb-4">
+        <div id="turnIndicator">Waiting for game to start...</div>
         <button id="endTurnBtn" class="btn btn-warning" onclick="endTurn()" style="display:none;">End Turn</button>
     </div>
-
-    <!-- Duel board -->
-    <div id="game" data-game-id="{{ game_id }}">
-      <div class="opponent-hand d-flex gap-2 mt-3 flex-wrap justify-content-center"></div>
-        <!-- Opponent Field -->
-        <div class="player-field opponent">
-            <div class="extra border border-secondary rounded"></div>
-            <div class="monster-zone border border-danger rounded"></div>
-            <div class="monster-zone border border-danger rounded"></div>
-            <div class="monster-zone border border-danger rounded"></div>
-            <div class="monster-zone border border-danger rounded"></div>
-            <div class="monster-zone border border-danger rounded"></div>
-            <div class="grave border border-secondary rounded"></div>
-            <div class="field border border-secondary rounded"></div>
-            <div class="spell-zone border border-primary rounded"></div>
-            <div class="spell-zone border border-primary rounded"></div>
-            <div class="spell-zone border border-primary rounded"></div>
-            <div class="spell-zone border border-primary rounded"></div>
-            <div class="spell-zone border border-primary rounded"></div>
-            <div class="deck border border-secondary rounded"></div>
-        </div>
-
-        <!-- Your Field -->
-        <div class="player-field self">
-            <div class="extra border border-secondary rounded">Extra</div>
-            <div class="monster-zone border border-danger rounded">M1</div>
-            <div class="monster-zone border border-danger rounded">M2</div>
-            <div class="monster-zone border border-danger rounded">M3</div>
-            <div class="monster-zone border border-danger rounded">M4</div>
-            <div class="monster-zone border border-danger rounded">M5</div>
-            <div class="grave border border-secondary rounded">GY</div>
-            <div class="field border border-secondary rounded">Field</div>
-            <div class="spell-zone border border-primary rounded">S1</div>
-            <div class="spell-zone border border-primary rounded">S2</div>
-            <div class="spell-zone border border-primary rounded">S3</div>
-            <div class="spell-zone border border-primary rounded">S4</div>
-            <div class="spell-zone border border-primary rounded">S5</div>
-            <div class="deck border border-secondary rounded">Deck</div>
-        </div>
-
-        <!-- Player hand -->
-        <div id="playerHand" class="hand-container d-flex gap-2 mt-3 flex-wrap justify-content-center"></div>
-    </div>
 </div>
-
-<!-- Set JS globals -->
-<script>
-    window.USERNAME = "{{ session['username'] }}";
-    window.GAME_ID = "{{ game_id }}";
-    window.USER_DECK = {% if user_decks %}"{{ user_decks[0] }}"{% else %}null{% endif %};
-</script>
-<script src="{{ url_for('static', filename='js/main.js') }}"></script>
-
+    <script>
+        window.USERNAME = "{{ session['username'] }}";
+        window.GAME_ID = "{{ game_id }}";
+        window.USER_DECK = {% if user_decks %}"{{ user_decks[0] }}"{% else %}null{% endif %};
+    </script>
+    <script src="{{ url_for('static', filename='js/socket.io.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/phaser.min.js') }}"></script>
+    <script type="module" src="/static/js/main.js"></script>
 </body>
 </html>

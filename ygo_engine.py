@@ -2,6 +2,7 @@ from game.game import GameState
 from game.card import Card
 from game.deck import Deck
 from game.player import Player
+import json
 
 class YGOEngine:
     def __init__(self):
@@ -25,26 +26,21 @@ class YGOEngine:
     # -------------------------
     # Player Management
     # -------------------------
-    def add_player_to_game(self, game_id, sid, name, deck_data=None):
-        # Create the game if it doesn't exist yet
-        game = self.get_game(game_id)
+
+    def add_player_to_game(self, game_id, sid, name, deck_data):
+        # Convert deck_data to dict if it's a string
+        if isinstance(deck_data, str):
+            try:
+                deck_data = json.loads(deck_data)
+            except json.JSONDecodeError:
+                deck_data = {"main": [], "extra": []}  # fallback if invalid JSON
+
+        game = self.games.get(game_id)
         if not game:
-            game_id = game_id or str(uuid.uuid4())
-            game = GameState()
-            self.games[game.id] = game
+            return None  # or raise error
 
-        # Add the player
         player = game.add_player(sid, name, deck_data)
-
-        print(f"[YGOEngine] Game {game.id}: {len(game.players)} player(s), started: {game.started}")
         return player
-
-    def remove_player_from_game(self, game_id, sid):
-        game = self.get_game(game_id)
-        if game:
-            game.remove_player(sid)
-            if not game.players:
-                self.remove_game(game_id)
 
     # -------------------------
     # Turn Management
